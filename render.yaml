@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: eventops-platform
+    env: node
+    plan: free
+    buildCommand: cd react-app && npm install --legacy-peer-deps && npm run build && cd ../backend && npm install --legacy-peer-deps
+    startCommand: cd backend && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        placeholder: "mongodb+srv://username:password@cluster.mongodb.net/eventops"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: "24h"
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: "7d"
+      # Optional features (leave blank or fill in Render dashboard if needed)
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false

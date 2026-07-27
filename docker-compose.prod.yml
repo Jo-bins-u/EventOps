@@ -1,0 +1,59 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: eventops-mongo-prod
+    restart: unless-stopped
+    volumes:
+      - mongo-prod-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: eventops-backend-prod
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGO_URI: mongodb://mongo:27017/eventops
+      JWT_SECRET: your_super_secret_production_jwt_key_please_change
+      JWT_REFRESH_SECRET: your_production_refresh_secret_key_please_change
+      JWT_EXPIRES_IN: 24h
+      JWT_REFRESH_EXPIRES_IN: 7d
+      # Enable these if using external uploads or mail features
+      # SUPABASE_URL: ${SUPABASE_URL}
+      # SUPABASE_KEY: ${SUPABASE_KEY}
+      # SMTP_HOST: ${SMTP_HOST}
+      # SMTP_PORT: ${SMTP_PORT}
+      # SMTP_USER: ${SMTP_USER}
+      # SMTP_PASS: ${SMTP_PASS}
+      # GEMINI_API_KEY: ${GEMINI_API_KEY}
+      # GROQ_API_KEY: ${GROQ_API_KEY}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./react-app
+      dockerfile: Dockerfile.prod
+    container_name: eventops-frontend-prod
+    restart: unless-stopped
+    ports:
+      - '80:80'
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mongo-prod-data:

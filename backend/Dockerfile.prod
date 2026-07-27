@@ -1,0 +1,19 @@
+FROM node:18-alpine
+
+# Set to production
+ENV NODE_ENV=production
+
+WORKDIR /app
+
+# Copy package descriptors
+COPY package*.json .npmrc ./
+
+# Install production dependencies only
+RUN npm ci --only=production --legacy-peer-deps
+
+# Copy app source
+COPY . .
+
+EXPOSE 5000
+
+CMD ["node", "server.js"]

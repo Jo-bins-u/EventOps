@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EventOps Platform</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f3; --surface: #ffffff; --surface2: #f1f0e8; --surface3: #e8e7df;
+    --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.15);
+    --text: #1a1a18; --text2: #5f5e5a; --text3: #888780;
+    --blue: #185FA5; --blue-bg: #E6F1FB; --blue-t: #0C447C;
+    --green: #3B6D11; --green-bg: #EAF3DE;
+    --amber: #854F0B; --amber-bg: #FAEEDA;
+    --red: #A32D2D; --red-bg: #FCEBEB;
+    --teal: #0F6E56; --teal-bg: #E1F5EE;
+    --purple: #534AB7; --purple-bg: #EEEDFE;
+    --sidebar-w: 230px; --header-h: 54px;
+    --radius: 8px; --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18; --surface: #242422; --surface2: #2c2c2a; --surface3: #343432;
+      --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.15);
+      --text: #f1efe8; --text2: #b4b2a9; --text3: #888780;
+      --blue-bg: #0c2a4a; --blue-t: #85b7eb;
+      --green-bg: #172d04; --amber-bg: #2a1a04; --red-bg: #2a0f0f;
+      --teal-bg: #042c1e; --purple-bg: #1e1c4a;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: var(--text); background: var(--bg); }
+  #app { display: flex; height: 100vh; overflow: hidden; }
+  /* SIDEBAR */
+  #sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 0.5px solid var(--border2); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; }
+  .sb-logo { padding: 16px; border-bottom: 0.5px solid var(--border); }
+  .sb-logo-title { font-size: 14px; font-weight: 600; }
+  .sb-logo-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .sb-section { padding: 10px 12px 4px; font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.7px; text-transform: uppercase; }
+  .sb-item { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 7px; cursor: pointer; color: var(--text2); margin: 1px 8px; font-size: 13px; transition: background 0.1s; }
+  .sb-item:hover { background: var(--surface2); color: var(--text); }
+  .sb-item.active { background: var(--blue-bg); color: var(--blue-t); font-weight: 500; }
+  .sb-item .ico { width: 18px; text-align: center; font-size: 14px; }
+  .sb-item .bdg { margin-left: auto; background: var(--red-bg); color: var(--red); font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 600; }
+  .sb-user { padding: 12px 14px; border-top: 0.5px solid var(--border); margin-top: auto; display: flex; align-items: center; gap: 9px; }
+  /* MAIN */
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { height: var(--header-h); background: var(--surface); border-bottom: 0.5px solid var(--border2); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; }
+  .topbar-title { font-size: 15px; font-weight: 500; flex: 1; }
+  .content { flex: 1; overflow-y: auto; padding: 20px; }
+  /* VIEWS */
+  .view { display: none; }
+  .view.active { display: block; }
+  /* COMMON */
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; }
+  .card-title { font-size: 13px; font-weight: 500; margin-bottom: 12px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 7px; font-size: 12px; cursor: pointer; border: 0.5px solid var(--border2); background: var(--surface); color: var(--text); font-weight: 500; transition: background 0.1s; }
+  .btn:hover { background: var(--surface2); }
+  .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .btn-primary:hover { background: var(--blue-t); }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+  .btn-danger { background: var(--red-bg); color: var(--red); border-color: transparent; }
+  .tag { display: inline-flex; align-items: center; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+  .tag-blue { background: var(--blue-bg); color: var(--blue-t); }
+  .tag-green { background: var(--green-bg); color: var(--green); }
+  .tag-amber { background: var(--amber-bg); color: var(--amber); }
+  .tag-red { background: var(--red-bg); color: var(--red); }
+  .tag-teal { background: var(--teal-bg); color: var(--teal); }
+  .tag-purple { background: var(--purple-bg); color: var(--purple); }
+  .av { border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; }
+  .av-blue { background: var(--blue-bg); color: var(--blue-t); }
+  .av-teal { background: var(--teal-bg); color: var(--teal); }
+  .av-purple { background: var(--purple-bg); color: var(--purple); }
+  .av-amber { background: var(--amber-bg); color: var(--amber); }
+  .av-green { background: var(--green-bg); color: var(--green); }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .metric { background: var(--surface2); border-radius: var(--radius); padding: 13px 15px; }
+  .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 5px; }
+  .metric-value { font-size: 24px; font-weight: 500; }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .pbar { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .pfill { height: 100%; border-radius: 3px; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .tbl th { text-align: left; padding: 8px 10px; color: var(--text3); font-weight: 500; border-bottom: 0.5px solid var(--border2); font-size: 11px; }
+  .tbl td { padding: 9px 10px; border-bottom: 0.5px solid var(--border); }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: var(--surface2); }
+  .inner-tabs { display: flex; border-bottom: 0.5px solid var(--border); margin-bottom: 16px; }
+  .itab { padding: 8px 16px; font-size: 13px; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .itab:hover { color: var(--text); }
+  .itab.active { color: var(--blue-t); border-bottom-color: var(--blue); font-weight: 500; }
+  .field { margin-bottom: 14px; }
+  .label { font-size: 12px; color: var(--text2); margin-bottom: 5px; display: block; }
+  input[type=text], input[type=email], input[type=password], input[type=date], select, textarea { width: 100%; padding: 8px 12px; border: 0.5px solid var(--border2); border-radius: var(--radius); font-size: 13px; background: var(--surface2); color: var(--text); font-family: inherit; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--blue); }
+  textarea { resize: vertical; min-height: 72px; }
+  .toggle { width: 36px; height: 20px; border-radius: 10px; background: var(--border2); position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; display: inline-block; }
+  .toggle.on { background: var(--blue); }
+  .toggle::after { content: ''; width: 14px; height: 14px; border-radius: 7px; background: #fff; position: absolute; top: 3px; left: 3px; transition: left 0.2s; }
+  .toggle.on::after { left: 19px; }
+  /* MODAL */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--surface); border-radius: var(--radius-lg); border: 0.5px solid var(--border2); padding: 22px; width: 460px; max-height: 85vh; overflow-y: auto; position: relative; }
+  .modal-title { font-size: 15px; font-weight: 500; margin-bottom: 18px; }
+  .modal-close { position: absolute; top: 16px; right: 16px; cursor: pointer; font-size: 20px; color: var(--text3); line-height: 1; }
+  .modal-close:hover { color: var(--text); }
+  /* CHAT */
+  .chat-layout { display: flex; height: calc(100vh - var(--header-h) - 40px); }
+  .chat-sb { width: 210px; flex-shrink: 0; border-right: 0.5px solid var(--border); overflow-y: auto; }
+  .chat-room { display: flex; align-items: center; gap: 9px; padding: 10px 13px; cursor: pointer; border-bottom: 0.5px solid var(--border); }
+  .chat-room:hover { background: var(--surface2); }
+  .chat-room.active { background: var(--blue-bg); }
+  .chat-main { flex: 1; display: flex; flex-direction: column; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { display: flex; gap: 10px; align-items: flex-start; }
+  .msg-text { font-size: 13px; line-height: 1.55; background: var(--surface2); padding: 9px 12px; border-radius: 9px; display: inline-block; }
+  .msg-text.admin-msg { background: var(--blue-bg); color: var(--blue-t); }
+  .chat-input-row { padding: 12px 16px; border-top: 0.5px solid var(--border); display: flex; gap: 9px; background: var(--surface); }
+  .chat-input-row input { flex: 1; }
+  /* GANTT */
+  .gbar { position: absolute; height: 100%; border-radius: 4px; display: flex; align-items: center; padding: 0 7px; font-size: 10px; color: #fff; font-weight: 500; overflow: hidden; white-space: nowrap; cursor: pointer; }
+  /* NOTIF */
+  .notif-item { display: flex; gap: 10px; padding: 11px 0; border-bottom: 0.5px solid var(--border); align-items: flex-start; }
+  .notif-item:last-child { border-bottom: none; }
+  .notif-icon { width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  /* DOC */
+  .doc-row { display: flex; align-items: center; gap: 11px; padding: 11px 13px; background: var(--surface2); border-radius: var(--radius); border: 0.5px solid var(--border); margin-bottom: 8px; }
+  /* ANBAR */
+  .anbar { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .anbar-label { width: 140px; font-size: 12px; color: var(--text2); flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .anbar-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .anbar-fill { height: 100%; border-radius: 4px; }
+  .anbar-val { font-size: 12px; color: var(--text3); width: 36px; text-align: right; flex-shrink: 0; }
+  /* CAL */
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 1px; background: var(--border); border-radius: 7px; overflow: hidden; }
+  .cal-cell { background: var(--surface); padding: 8px; min-height: 72px; }
+  .cal-hdr { background: var(--surface2); padding: 7px 8px; font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; text-align: center; }
+  .cal-day { font-size: 11px; color: var(--text3); font-weight: 500; margin-bottom: 4px; }
+  .cal-day.today { background: var(--blue); color: #fff; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .cal-evt { font-size: 10px; padding: 2px 5px; border-radius: 3px; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* NOTIF DOT */
+  .notif-btn { position: relative; }
+  .notif-dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--red); border: 2px solid var(--surface); }
+  /* CHECK-ROW */
+  .check-row { display: flex; align-items: center; gap: 9px; padding: 7px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+  .check-row:last-child { border-bottom: none; }
+  .check-row input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--blue); flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-title">EventOps Platform</div>
+      <div class="sb-logo-sub">Internal Coordination System</div>
+      <div style="margin-top:8px;display:flex;gap:6px;align-items:center;">
+        <span class="tag tag-blue" id="role-badge">Admin</span>
+        <span class="btn btn-sm" onclick="toggleRole()" style="font-size:10px;padding:2px 8px;">Switch role</span>
+      </div>
+    </div>
+    <div class="sb-section">Main</div>
+    <div class="sb-item active" onclick="nav('dashboard')"><span class="ico">⊞</span>Dashboard</div>
+    <div class="sb-item" onclick="nav('domains')"><span class="ico">◈</span>Domains</div>
+    <div class="sb-item" onclick="nav('events')"><span class="ico">◎</span>Events</div>
+    <div class="sb-item" onclick="nav('chat')"><span class="ico">💬</span>Chat <span class="bdg" id="chat-bdg">3</span></div>
+    <div class="sb-item" onclick="nav('tasks')"><span class="ico">☑</span>Tasks</div>
+    <div class="sb-item" onclick="nav('calendar')"><span class="ico">▦</span>Calendar</div>
+    <div class="sb-item" onclick="nav('gantt')"><span class="ico">▤</span>Gantt</div>
+    <div class="sb-section">Insights</div>
+    <div class="sb-item" onclick="nav('analytics')"><span class="ico">📊</span>Analytics</div>
+    <div class="sb-item" onclick="nav('docs')"><span class="ico">📁</span>Documents</div>
+    <div class="sb-item" onclick="nav('notifs')"><span class="ico">🔔</span>Notifications <span class="bdg">5</span></div>
+    <div class="sb-item admin-only" onclick="nav('users')"><span class="ico">👥</span>Users & Roles</div>
+    <div class="sb-section">Account</div>
+    <div class="sb-item" onclick="nav('notif-settings')"><span class="ico">⚙</span>Notif Settings</div>
+    <div class="sb-item" onclick="nav('profile')"><span class="ico">👤</span>Profile</div>
+    <div class="sb-user">
+      <div class="av av-blue" style="width:30px;height:30px;font-size:11px;" id="user-av">SC</div>
+      <div>
+        <div style="font-size:12px;font-weight:500;" id="user-name">Sarah Chen</div>
+        <div style="font-size:11px;color:var(--text3);" id="user-role-sub">Faculty Coordinator</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div style="display:flex;gap:9px;align-items:center;">
+        <input placeholder="Search..." style="width:180px;padding:6px 11px;font-size:12px;" />
+        <div class="btn notif-btn" onclick="nav('notifs')" style="padding:7px 10px;">🔔<div class="notif-dot"></div></div>
+        <div class="btn btn-primary" id="quick-btn" onclick="openModal('modal-create-event')">+ New Event</div>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="view active" id="view-dashboard">
+        <div class="g4" style="margin-bottom:16px;">
+          <div class="metric"><div class="metric-label">Active Events</div><div class="metric-value">12</div><div class="metric-sub" style="color:var(--green);">+3 this month</div></div>
+          <div class="metric"><div class="metric-label">Total Tasks</div><div class="metric-value">84</div><div class="metric-sub">62 completed</div></div>
+          <div class="metric"><div class="metric-label">Team Members</div><div class="metric-value">47</div><div class="metric-sub">6 domains</div></div>
+          <div class="metric"><div class="metric-label">Completion Rate</div><div class="metric-value">74%</div><div class="metric-sub" style="color:var(--red);">–2% vs last week</div></div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-title">Upcoming Events</div>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:0.5px solid var(--border);"><div style="width:8px;height:8px;border-radius:50%;background:var(--blue);flex-shrink:0;"></div><div style="flex:1;"><div style="font-weight:500;font-size:13px;">Tech Symposium 2025</div><div style="font-size:11px;color:var(--text3);">May 15 · Technical</div></div><span class="tag tag-blue">Active</span></div>
+              <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:0.5px solid var(--border);"><div style="width:8px;height:8px;border-radius:50%;background:var(--purple);flex-shrink:0;"></div><div style="flex:1;"><div style="font-weight:500;font-size:13px;">Cultural Fest</div><div style="font-size:11px;color:var(--text3);">May 22 · Cultural</div></div><span class="tag tag-green">Planning</span></div>
+              <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:0.5px solid var(--border);"><div style="width:8px;height:8px;border-radius:50%;background:var(--amber);flex-shrink:0;"></div><div style="flex:1;"><div style="font-weight:500;font-size:13px;">Hackathon 2025</div><div style="font-size:11px;color:var(--text3);">Jun 1 · Technical</div></div><span class="tag tag-amber">Setup</span></div>
+              <div style="display:flex;align-items:center;gap:9px;padding:8px 0;"><div style="width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0;"></div><div style="flex:1;"><div style="font-weight:500;font-size:13px;">Sports Meet</div><div style="font-size:11px;color:var(--text3);">Jun 15 · Sports</div></div><span class="tag tag-teal">Active</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">My Tasks</div>
+            <div style="display:flex;flex-direction:column;gap:1px;">
+              <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:0.5px solid var(--border);"><div style="width:16px;height:16px;border-radius:4px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;flex-shrink:0;">✓</div><div style="flex:1;font-size:13px;text-decoration:line-through;color:var(--text3);">Book venue for symposium</div><span style="font-size:11px;color:var(--text3);">May 5</span></div>
+              <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:0.5px solid var(--border);"><div style="width:16px;height:16px;border-radius:4px;border:1.5px solid var(--red);flex-shrink:0;"></div><div style="flex:1;font-size:13px;color:var(--red);">Finalize speaker list</div><span style="font-size:11px;color:var(--red);">May 8 !</span></div>
+              <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:0.5px solid var(--border);"><div style="width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);flex-shrink:0;"></div><div style="flex:1;font-size:13px;">Send invites to participants</div><span style="font-size:11px;color:var(--text3);">May 10</span></div>
+              <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:0.5px solid var(--border);"><div style="width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);flex-shrink:0;"></div><div style="flex:1;font-size:13px;">Coordinate with catering</div><span style="font-size:11px;color:var(--text3);">May 12</span></div>
+              <div style="display:flex;align-items:center;gap:9px;padding:8px 0;"><div style="width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);flex-shrink:0;"></div><div style="flex:1;font-size:13px;">Set up registration form</div><span style="font-size:11px;color:var(--text3);">May 9</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-title">Domain Activity</div>
+            <div class="anbar"><div class="anbar-label">Technical</div><div class="anbar-track"><div class="anbar-fill" style="width:82%;background:var(--blue);"></div></div><div class="anbar-val">82%</div></div>
+            <div class="anbar"><div class="anbar-label">Cultural</div><div class="anbar-track"><div class="anbar-fill" style="width:67%;background:var(--purple);"></div></div><div class="anbar-val">67%</div></div>
+            <div class="anbar"><div class="anbar-label">Sports</div><div class="anbar-track"><div class="anbar-fill" style="width:54%;background:var(--teal);"></div></div><div class="anbar-val">54%</div></div>
+            <div class="anbar"><div class="anbar-label">Literary</div><div class="anbar-track"><div class="anbar-fill" style="width:40%;background:var(--amber);"></div></div><div class="anbar-val">40%</div></div>
+            <div class="anbar"><div class="anbar-label">Finance</div><div class="anbar-track"><div class="anbar-fill" style="width:30%;background:var(--red);"></div></div><div class="anbar-val">30%</div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Recent Notifications</div>
+            <div class="notif-item" style="padding:8px 0;"><div class="notif-icon" style="background:var(--red-bg);">!</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Task overdue: Speaker list</div><div style="font-size:11px;color:var(--text3);">Assigned to Rohan Mehta</div></div><span style="font-size:11px;color:var(--text3);">2h ago</span></div>
+            <div class="notif-item" style="padding:8px 0;"><div class="notif-icon" style="background:var(--green-bg);">✓</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Venue confirmed</div><div style="font-size:11px;color:var(--text3);">Completed by Ananya</div></div><span style="font-size:11px;color:var(--text3);">4h ago</span></div>
+            <div class="notif-item" style="padding:8px 0;border-bottom:none;"><div class="notif-icon" style="background:var(--amber-bg);">💬</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">New message in Cultural Fest</div><div style="font-size:11px;color:var(--text3);">Priya: Can we move rehearsal?</div></div><span style="font-size:11px;color:var(--text3);">5h ago</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOMAINS -->
+      <div class="view" id="view-domains">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div><div style="font-size:15px;font-weight:500;">Domain Management</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">6 active domains</div></div>
+          <div class="btn btn-primary" onclick="openModal('modal-create-event')">+ New Domain</div>
+        </div>
+        <div class="g2">
+          <div class="card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><div style="width:38px;height:38px;border-radius:8px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:18px;">⚙</div><div><div style="font-weight:500;">Technical</div><div style="font-size:11px;color:var(--text3);">Head: Ananya Patel</div></div><span class="tag tag-blue" style="margin-left:auto;">Active</span></div><div class="g3" style="margin-bottom:10px;"><div style="background:var(--surface2);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:500;">3</div><div style="font-size:10px;color:var(--text3);">Events</div></div><div style="background:var(--surface2);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:500;">12</div><div style="font-size:10px;color:var(--text3);">Members</div></div><div style="background:var(--surface2);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:500;">65%</div><div style="font-size:10px;color:var(--text3);">Progress</div></div></div><div class="pbar" style="margin-bottom:10px;"><div class="pfill" style="width:65%;background:var(--blue);"></div></div><div style="display:flex;gap:7px;"><div class="btn btn-sm">View Events</div><div class="btn btn-sm btn-primary">Add Event</div></div></div>
+          <div class="card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><div style="width:38px;height:38px;border-radius:8px;background:var(--purple-bg);display:flex;align-items:center;justify-content:center;font-size:18px;">🎭</div><div><div style="font-weight:500;">Cultural</div><div style="font-size:11px;color:var(--text3);">Head: Priya Kumar</div></div><span class="tag tag-purple" style="margin-left:auto;">Active</span></div><div class="g3" style="margin-bottom:10px;"><div style="background:var(--surface2);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:500;">2</div><div style="font-size:10px;color:var(--text3);">Events</div></div><div style="background:var(--surface2);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:500;">14</div><div style="font-size:10px;color:var(--text3);">Members</div></div><div style="background:var(--surface2);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:500;">42%</div><div style="font-size:10px;color:var(--text3);">Progress</div></div></div><div class="pbar" style="margin-bottom:10px;"><div class="pfill" style="width:42%;background:var(--purple);"></div></div><div style="display:flex;gap:7px;"><div class="btn btn-sm">View Events</div><div class="btn btn-sm btn-primary">Add Event</div></div></div>
+          <div class="card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><div style="width:38px;height:38px;border-radius:8px;background:var(--teal-bg);display:flex;align-items:center;justify-content:center;font-size:18px;">🏅</div><div><div style="font-weight:500;">Sports</div><div style="font-size:11px;color:var(--text3);">Head: Karan Singh</div></div><span class="tag tag-teal" style="margin-left:auto;">Active</span></div><div class="g3" style="margin-bottom:10px;"><div style="background:var(--surface2);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:500;">2</div><div style="font-size:10px;color:var(--text3);">Events</div></div><div style="background:var(--surface2);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:500;">10</div><div style="font-size:10px;color:var(--text3);">Members</div></div><div style="background:var(--surface2);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:500;">51%</div><div style="font-size:10px;color:var(--text3);">Progress</div></div></div><div class="pbar" style="margin-bottom:10px;"><div class="pfill" style="width:51%;background:var(--teal);"></div></div><div style="display:flex;gap:7px;"><div class="btn btn-sm">View Events</div><div class="btn btn-sm btn-primary">Add Event</div></div></div>
+          <div class="card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><div style="width:38px;height:38px;border-radius:8px;background:var(--amber-bg);display:flex;align-items:center;justify-content:center;font-size:18px;">📚</div><div><div style="font-weight:500;">Literary</div><div style="font-size:11px;color:var(--text3);">Head: Vivek Nair</div></div><span class="tag tag-amber" style="margin-left:auto;">Setup</span></div><div class="g3" style="margin-bottom:10px;"><div style="background:var(--surface2);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:500;">1</div><div style="font-size:10px;color:var(--text3);">Events</div></div><div style="background:var(--surface2);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:500;">7</div><div style="font-size:10px;color:var(--text3);">Members</div></div><div style="background:var(--surface2);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:15px;font-weight:500;">28%</div><div style="font-size:10px;color:var(--text3);">Progress</div></div></div><div class="pbar" style="margin-bottom:10px;"><div class="pfill" style="width:28%;background:var(--amber);"></div></div><div style="display:flex;gap:7px;"><div class="btn btn-sm">View Events</div><div class="btn btn-sm btn-primary">Add Event</div></div></div>
+        </div>
+      </div>
+
+      <!-- EVENTS -->
+      <div class="view" id="view-events">
+        <div style="display:flex;justify-content:space-between;margin-bottom:16px;align-items:center;">
+          <div style="font-size:15px;font-weight:500;">Events</div>
+          <div class="btn btn-primary" onclick="openModal('modal-create-event')">+ New Event</div>
+        </div>
+        <div class="g2">
+          <div class="card" style="cursor:pointer;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background=''">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><div><div style="font-size:14px;font-weight:500;">Tech Symposium 2025</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">Technical · May 15–16</div></div><span class="tag tag-blue">Active</span></div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Annual tech showcase with guest speakers, demos, and workshops.</div>
+            <div class="pbar" style="margin-bottom:7px;"><div class="pfill" style="width:65%;background:var(--blue);"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:10px;"><span>65% complete</span><span>18 tasks · 8 members</span></div>
+            <div style="display:flex;gap:7px;"><div class="btn btn-sm">View</div><div class="btn btn-sm">Chat</div><div class="btn btn-sm btn-primary">Add Task</div></div>
+          </div>
+          <div class="card" style="cursor:pointer;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background=''">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><div><div style="font-size:14px;font-weight:500;">Cultural Fest</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">Cultural · May 22</div></div><span class="tag tag-green">Planning</span></div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Multi-day cultural celebration with performances and food festival.</div>
+            <div class="pbar" style="margin-bottom:7px;"><div class="pfill" style="width:35%;background:var(--purple);"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:10px;"><span>35% complete</span><span>24 tasks · 14 members</span></div>
+            <div style="display:flex;gap:7px;"><div class="btn btn-sm">View</div><div class="btn btn-sm">Chat</div><div class="btn btn-sm btn-primary">Add Task</div></div>
+          </div>
+          <div class="card" style="cursor:pointer;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background=''">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><div><div style="font-size:14px;font-weight:500;">Hackathon 2025</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">Technical · Jun 1–2</div></div><span class="tag tag-amber">Setup</span></div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">48-hour coding challenge with mentors, problem sets, and prizes.</div>
+            <div class="pbar" style="margin-bottom:7px;"><div class="pfill" style="width:20%;background:var(--amber);"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:10px;"><span>20% complete</span><span>30 tasks · 10 members</span></div>
+            <div style="display:flex;gap:7px;"><div class="btn btn-sm">View</div><div class="btn btn-sm">Chat</div><div class="btn btn-sm btn-primary">Add Task</div></div>
+          </div>
+          <div class="card" style="cursor:pointer;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background=''">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><div><div style="font-size:14px;font-weight:500;">Sports Meet</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">Sports · Jun 15–16</div></div><span class="tag tag-teal">Active</span></div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Inter-department tournament with 8 disciplines and closing ceremony.</div>
+            <div class="pbar" style="margin-bottom:7px;"><div class="pfill" style="width:50%;background:var(--teal);"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:10px;"><span>50% complete</span><span>16 tasks · 12 members</span></div>
+            <div style="display:flex;gap:7px;"><div class="btn btn-sm">View</div><div class="btn btn-sm">Chat</div><div class="btn btn-sm btn-primary">Add Task</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHAT -->
+      <div class="view" id="view-chat">
+        <div class="chat-layout">
+          <div class="chat-sb">
+            <div style="padding:9px 11px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;">Channels</div>
+            <div class="chat-room active"><div style="width:9px;height:9px;border-radius:50%;background:var(--blue);flex-shrink:0;"></div><div><div style="font-size:13px;font-weight:500;">Tech Symposium</div><div style="font-size:11px;color:var(--text3);">18 members</div></div></div>
+            <div class="chat-room"><div style="width:9px;height:9px;border-radius:50%;background:var(--purple);flex-shrink:0;"></div><div><div style="font-size:13px;font-weight:500;">Cultural Fest</div><div style="font-size:11px;color:var(--text3);">14 members</div></div></div>
+            <div class="chat-room"><div style="width:9px;height:9px;border-radius:50%;background:var(--teal);flex-shrink:0;"></div><div><div style="font-size:13px;font-weight:500;">Hackathon</div><div style="font-size:11px;color:var(--text3);">10 members</div></div></div>
+            <div style="padding:9px 11px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-top:4px;">Admin</div>
+            <div class="chat-room"><div style="width:9px;height:9px;border-radius:50%;background:var(--red);flex-shrink:0;"></div><div><div style="font-size:13px;font-weight:500;">Broadcast</div><div style="font-size:11px;color:var(--text3);">All members</div></div></div>
+          </div>
+          <div class="chat-main">
+            <div style="padding:11px 16px;border-bottom:0.5px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:10px;">
+              <div style="font-size:13px;font-weight:500;">Tech Symposium 2025</div>
+              <span style="font-size:11px;color:var(--text3);">18 members</span>
+              <div style="margin-left:auto;display:flex;gap:7px;"><div class="btn btn-sm">Pinned (2)</div><div class="btn btn-sm">Files</div></div>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+              <div style="text-align:center;font-size:11px;color:var(--text3);padding:4px 0;">Today, May 9</div>
+              <div class="msg">
+                <div class="av av-blue" style="width:30px;height:30px;font-size:11px;">SC</div>
+                <div>
+                  <div style="display:flex;gap:7px;align-items:baseline;margin-bottom:3px;"><span style="font-size:12px;font-weight:500;color:var(--blue-t);">Sarah Chen</span><span style="font-size:11px;color:var(--text3);">9:14 AM</span><span class="tag tag-blue" style="font-size:10px;">Admin</span></div>
+                  <div class="msg-text admin-msg">Team, reminder: speaker confirmation deadline is tomorrow by 5 PM. Please update your assigned names.</div>
+                  <div style="display:flex;gap:6px;margin-top:5px;">
+                    <div class="btn btn-sm" onclick="convertMsg(this,'task')">+ Task</div>
+                    <div class="btn btn-sm" onclick="convertMsg(this,'reminder')">+ Reminder</div>
+                    <span style="cursor:pointer;font-size:14px;opacity:0.7;" onclick="this.style.opacity=1">⭐</span>
+                  </div>
+                </div>
+              </div>
+              <div class="msg">
+                <div class="av av-teal" style="width:30px;height:30px;font-size:11px;">RM</div>
+                <div>
+                  <div style="display:flex;gap:7px;align-items:baseline;margin-bottom:3px;"><span style="font-size:12px;font-weight:500;">Rohan Mehta</span><span style="font-size:11px;color:var(--text3);">9:28 AM</span></div>
+                  <div class="msg-text">Got it! I have 3 speakers confirmed — will send the full list by end of day.</div>
+                  <div style="display:flex;gap:6px;margin-top:5px;"><div class="btn btn-sm" onclick="convertMsg(this,'task')">+ Task</div></div>
+                </div>
+              </div>
+              <div class="msg">
+                <div class="av av-purple" style="width:30px;height:30px;font-size:11px;">AP</div>
+                <div>
+                  <div style="display:flex;gap:7px;align-items:baseline;margin-bottom:3px;"><span style="font-size:12px;font-weight:500;">Ananya Patel</span><span style="font-size:11px;color:var(--text3);">9:35 AM</span></div>
+                  <div class="msg-text">Venue confirmed! Floor plan uploaded to docs. Team meeting at 4 PM today to finalize AV setup?</div>
+                  <div style="display:flex;gap:6px;margin-top:5px;"><div class="btn btn-sm" onclick="convertMsg(this,'task')">+ Task</div><div class="btn btn-sm" onclick="convertMsg(this,'calendar')">+ Calendar</div></div>
+                </div>
+              </div>
+              <div id="msg-confirm" style="display:none;background:var(--green-bg);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--green);">✓ Converted successfully.</div>
+            </div>
+            <div class="chat-input-row">
+              <input id="chat-input" placeholder="Message Tech Symposium..." />
+              <div class="btn btn-primary" onclick="sendMsg()">Send</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TASKS -->
+      <div class="view" id="view-tasks">
+        <div style="display:flex;justify-content:space-between;margin-bottom:16px;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:15px;font-weight:500;">Task Management</div>
+          <div style="display:flex;gap:8px;">
+            <select style="width:auto;padding:6px 10px;font-size:12px;"><option>All events</option><option>Tech Symposium</option><option>Cultural Fest</option></select>
+            <select style="width:auto;padding:6px 10px;font-size:12px;"><option>All statuses</option><option>Pending</option><option>In Progress</option><option>Done</option><option>Overdue</option></select>
+            <div class="btn btn-primary" onclick="openModal('modal-create-task')">+ New Task</div>
+          </div>
+        </div>
+        <div class="card">
+          <table class="tbl">
+            <thead><tr><th style="width:26px;"></th><th>Task</th><th>Event</th><th>Assigned to</th><th>Due</th><th>Priority</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td><div style="width:15px;height:15px;border-radius:3px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;">✓</div></td><td style="text-decoration:line-through;color:var(--text3);">Book venue</td><td><span class="tag tag-blue">Tech Symposium</span></td><td><div style="display:flex;align-items:center;gap:5px;"><div class="av av-blue" style="width:20px;height:20px;font-size:9px;">SC</div>Sarah</div></td><td>May 5</td><td><span style="font-size:11px;color:var(--text3);">Normal</span></td><td><span class="tag tag-green">Done</span></td></tr>
+              <tr><td><div style="width:15px;height:15px;border-radius:3px;border:1.5px solid var(--red);"></div></td><td style="color:var(--red);">Finalize speaker list</td><td><span class="tag tag-blue">Tech Symposium</span></td><td><div style="display:flex;align-items:center;gap:5px;"><div class="av av-teal" style="width:20px;height:20px;font-size:9px;">RM</div>Rohan</div></td><td style="color:var(--red);">May 8 !</td><td><span class="tag tag-red">High</span></td><td><span class="tag tag-red">Overdue</span></td></tr>
+              <tr><td><div style="width:15px;height:15px;border-radius:3px;border:1.5px solid var(--border2);"></div></td><td>Send participant invites</td><td><span class="tag tag-blue">Tech Symposium</span></td><td><div style="display:flex;align-items:center;gap:5px;"><div class="av av-purple" style="width:20px;height:20px;font-size:9px;">AP</div>Ananya</div></td><td>May 10</td><td><span class="tag tag-amber">Medium</span></td><td><span class="tag tag-amber">In Progress</span></td></tr>
+              <tr><td><div style="width:15px;height:15px;border-radius:3px;border:1.5px solid var(--border2);"></div></td><td>Catering coordination</td><td><span class="tag tag-blue">Tech Symposium</span></td><td><div style="display:flex;align-items:center;gap:5px;"><div class="av av-amber" style="width:20px;height:20px;font-size:9px;">KS</div>Karan</div></td><td>May 12</td><td><span class="tag tag-amber">Medium</span></td><td><span class="tag tag-amber">In Progress</span></td></tr>
+              <tr><td><div style="width:15px;height:15px;border-radius:3px;border:1.5px solid var(--border2);"></div></td><td>Design promo posters</td><td><span class="tag tag-purple">Cultural Fest</span></td><td><div style="display:flex;align-items:center;gap:5px;"><div class="av av-purple" style="width:20px;height:20px;font-size:9px;">PK</div>Priya</div></td><td>May 14</td><td><span style="font-size:11px;color:var(--text3);">Normal</span></td><td><span class="tag tag-amber">In Progress</span></td></tr>
+              <tr><td><div style="width:15px;height:15px;border-radius:3px;border:1.5px solid var(--border2);"></div></td><td>Registration portal setup</td><td><span class="tag tag-teal">Hackathon</span></td><td><div style="display:flex;align-items:center;gap:5px;"><div class="av av-teal" style="width:20px;height:20px;font-size:9px;">VN</div>Vivek</div></td><td>May 18</td><td><span style="font-size:11px;color:var(--text3);">Normal</span></td><td><span class="tag tag-blue">Pending</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CALENDAR -->
+      <div class="view" id="view-calendar">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="font-size:15px;font-weight:500;">May 2025</div>
+          <div style="display:flex;gap:8px;"><div class="btn btn-sm">◀ Apr</div><div class="btn btn-sm">Jun ▶</div><div class="btn btn-sm btn-primary">+ Add Event</div></div>
+        </div>
+        <div class="cal-grid">
+          <div class="cal-hdr">Sun</div><div class="cal-hdr">Mon</div><div class="cal-hdr">Tue</div><div class="cal-hdr">Wed</div><div class="cal-hdr">Thu</div><div class="cal-hdr">Fri</div><div class="cal-hdr">Sat</div>
+          <div class="cal-cell" style="background:var(--surface2);"></div><div class="cal-cell" style="background:var(--surface2);"></div><div class="cal-cell" style="background:var(--surface2);"><div class="cal-day">1</div></div>
+          <div class="cal-cell" style="background:var(--surface2);"><div class="cal-day">2</div></div><div class="cal-cell" style="background:var(--surface2);"><div class="cal-day">3</div></div>
+          <div class="cal-cell" style="background:var(--surface2);"><div class="cal-day">4</div></div><div class="cal-cell" style="background:var(--surface2);"><div class="cal-day">5</div></div>
+          <div class="cal-cell"><div class="cal-day">6</div></div><div class="cal-cell"><div class="cal-day">7</div></div>
+          <div class="cal-cell"><div class="cal-day">8</div><div class="cal-evt" style="background:var(--red-bg);color:var(--red);">Speaker deadline</div></div>
+          <div class="cal-cell"><div class="cal-day today">9</div><div class="cal-evt" style="background:var(--blue-bg);color:var(--blue-t);">AV Setup Mtg</div></div>
+          <div class="cal-cell"><div class="cal-day">10</div><div class="cal-evt" style="background:var(--blue-bg);color:var(--blue-t);">Invites due</div></div>
+          <div class="cal-cell"><div class="cal-day">11</div></div><div class="cal-cell"><div class="cal-day">12</div><div class="cal-evt" style="background:var(--amber-bg);color:var(--amber);">Catering</div></div>
+          <div class="cal-cell"><div class="cal-day">13</div></div><div class="cal-cell"><div class="cal-day">14</div></div>
+          <div class="cal-cell"><div class="cal-day">15</div><div class="cal-evt" style="background:var(--blue);color:#fff;">Tech Symposium</div></div>
+          <div class="cal-cell"><div class="cal-day">16</div><div class="cal-evt" style="background:var(--blue);color:#fff;">Tech Symposium</div></div>
+          <div class="cal-cell"><div class="cal-day">17</div></div><div class="cal-cell"><div class="cal-day">18</div></div><div class="cal-cell"><div class="cal-day">19</div></div>
+          <div class="cal-cell"><div class="cal-day">20</div></div><div class="cal-cell"><div class="cal-day">21</div></div>
+          <div class="cal-cell"><div class="cal-day">22</div><div class="cal-evt" style="background:var(--purple);color:#fff;">Cultural Fest</div></div>
+          <div class="cal-cell"><div class="cal-day">23</div><div class="cal-evt" style="background:var(--purple);color:#fff;">Cultural Fest</div></div>
+          <div class="cal-cell"><div class="cal-day">24</div></div><div class="cal-cell"><div class="cal-day">25</div></div><div class="cal-cell"><div class="cal-day">26</div></div>
+          <div class="cal-cell"><div class="cal-day">27</div></div><div class="cal-cell"><div class="cal-day">28</div></div>
+          <div class="cal-cell"><div class="cal-day">29</div></div><div class="cal-cell"><div class="cal-day">30</div></div><div class="cal-cell"><div class="cal-day">31</div></div>
+          <div class="cal-cell" style="background:var(--surface2);"></div><div class="cal-cell" style="background:var(--surface2);"></div><div class="cal-cell" style="background:var(--surface2);"></div>
+        </div>
+      </div>
+
+      <!-- GANTT -->
+      <div class="view" id="view-gantt">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:15px;font-weight:500;">Gantt Chart</div>
+          <div style="display:flex;gap:8px;">
+            <select id="gantt-event" onchange="renderGantt()" style="width:auto;padding:6px 10px;font-size:12px;"><option>Tech Symposium</option><option>Cultural Fest</option><option>Hackathon</option><option>Sports Meet</option></select>
+            <select id="gantt-filter" onchange="renderGantt()" style="width:auto;padding:6px 10px;font-size:12px;"><option value="all">All</option><option value="done">Done</option><option value="active">Active</option><option value="overdue">Overdue</option><option value="pending">Pending</option></select>
+            <div class="btn btn-sm">Export</div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;padding-bottom:8px;border-bottom:0.5px solid var(--border2);margin-bottom:4px;">
+            <div style="width:170px;flex-shrink:0;font-size:11px;font-weight:500;color:var(--text3);">TASK</div>
+            <div style="flex:1;display:flex;justify-content:space-between;"><span style="font-size:10px;color:var(--text3);">Apr 28</span><span style="font-size:10px;color:var(--text3);">May 3</span><span style="font-size:10px;color:var(--text3);">May 8</span><span style="font-size:10px;color:var(--blue);font-weight:600;">May 9 ▼</span><span style="font-size:10px;color:var(--text3);">May 13</span><span style="font-size:10px;color:var(--purple);font-weight:600;">Event ★</span></div>
+          </div>
+          <div id="gantt-rows"></div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border);">
+            <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);"><span style="width:10px;height:10px;background:var(--green);border-radius:2px;display:inline-block;"></span>Completed</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);"><span style="width:10px;height:10px;background:var(--blue);border-radius:2px;display:inline-block;"></span>In progress</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);"><span style="width:10px;height:10px;background:var(--red);border-radius:2px;display:inline-block;"></span>Overdue</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);"><span style="width:10px;height:10px;background:#888;border-radius:2px;display:inline-block;"></span>Pending</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS -->
+      <div class="view" id="view-analytics">
+        <div class="g4" style="margin-bottom:16px;">
+          <div class="metric"><div class="metric-label">Tasks Completed</div><div class="metric-value">62</div><div class="metric-sub" style="color:var(--green);">74% rate</div></div>
+          <div class="metric"><div class="metric-label">Overdue Tasks</div><div class="metric-value" style="color:var(--red);">8</div><div class="metric-sub" style="color:var(--red);">+3 this week</div></div>
+          <div class="metric"><div class="metric-label">Active Members</div><div class="metric-value">42</div><div class="metric-sub">of 47 total</div></div>
+          <div class="metric"><div class="metric-label">Events On-Track</div><div class="metric-value">9</div><div class="metric-sub">of 12 active</div></div>
+        </div>
+        <div class="g2">
+          <div class="card"><div class="card-title">Completion by event</div>
+            <div class="anbar"><div class="anbar-label">Tech Symposium</div><div class="anbar-track"><div class="anbar-fill" style="width:65%;background:var(--blue);"></div></div><div class="anbar-val">65%</div></div>
+            <div class="anbar"><div class="anbar-label">Cultural Fest</div><div class="anbar-track"><div class="anbar-fill" style="width:35%;background:var(--purple);"></div></div><div class="anbar-val">35%</div></div>
+            <div class="anbar"><div class="anbar-label">Hackathon</div><div class="anbar-track"><div class="anbar-fill" style="width:20%;background:var(--amber);"></div></div><div class="anbar-val">20%</div></div>
+            <div class="anbar"><div class="anbar-label">Sports Meet</div><div class="anbar-track"><div class="anbar-fill" style="width:50%;background:var(--teal);"></div></div><div class="anbar-val">50%</div></div>
+          </div>
+          <div class="card"><div class="card-title">Member activity</div>
+            <div class="anbar"><div class="anbar-label">Ananya Patel</div><div class="anbar-track"><div class="anbar-fill" style="width:90%;background:var(--blue);"></div></div><div class="anbar-val">18</div></div>
+            <div class="anbar"><div class="anbar-label">Rohan Mehta</div><div class="anbar-track"><div class="anbar-fill" style="width:65%;background:var(--purple);"></div></div><div class="anbar-val">13</div></div>
+            <div class="anbar"><div class="anbar-label">Priya Kumar</div><div class="anbar-track"><div class="anbar-fill" style="width:55%;background:var(--teal);"></div></div><div class="anbar-val">11</div></div>
+            <div class="anbar"><div class="anbar-label">Karan Singh</div><div class="anbar-track"><div class="anbar-fill" style="width:45%;background:var(--amber);"></div></div><div class="anbar-val">9</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Task status breakdown</div>
+          <div class="g4">
+            <div style="background:var(--green-bg);border-radius:8px;padding:14px;text-align:center;"><div style="font-size:22px;font-weight:500;color:var(--green);">62</div><div style="font-size:11px;color:var(--green);margin-top:3px;">Completed</div></div>
+            <div style="background:var(--amber-bg);border-radius:8px;padding:14px;text-align:center;"><div style="font-size:22px;font-weight:500;color:var(--amber);">14</div><div style="font-size:11px;color:var(--amber);margin-top:3px;">In Progress</div></div>
+            <div style="background:var(--blue-bg);border-radius:8px;padding:14px;text-align:center;"><div style="font-size:22px;font-weight:500;color:var(--blue-t);">8</div><div style="font-size:11px;color:var(--blue-t);margin-top:3px;">Not Started</div></div>
+            <div style="background:var(--red-bg);border-radius:8px;padding:14px;text-align:center;"><div style="font-size:22px;font-weight:500;color:var(--red);">8</div><div style="font-size:11px;color:var(--red);margin-top:3px;">Overdue</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOCS -->
+      <div class="view" id="view-docs">
+        <div style="display:flex;justify-content:space-between;margin-bottom:16px;align-items:center;">
+          <div style="font-size:15px;font-weight:500;">Documents</div>
+          <div class="btn btn-primary">+ Upload</div>
+        </div>
+        <div class="doc-row"><div style="width:36px;height:36px;border-radius:7px;background:var(--red-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📄</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Tech_Symposium_Budget.pdf</div><div style="font-size:11px;color:var(--text3);">Admin · May 8 · 420 KB · All members</div></div><div class="btn btn-sm">Preview</div><div class="btn btn-sm">Share</div></div>
+        <div class="doc-row"><div style="width:36px;height:36px;border-radius:7px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🗺</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Venue_Floor_Plan.png</div><div style="font-size:11px;color:var(--text3);">Ananya · May 9 · 1.2 MB · Event team</div></div><div class="btn btn-sm">Preview</div><div class="btn btn-sm">Share</div></div>
+        <div class="doc-row"><div style="width:36px;height:36px;border-radius:7px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📊</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Speaker_Schedule.xlsx</div><div style="font-size:11px;color:var(--text3);">Rohan · May 7 · 82 KB · Event Heads</div></div><div class="btn btn-sm">Preview</div><div class="btn btn-sm">Share</div></div>
+        <div class="doc-row"><div style="width:36px;height:36px;border-radius:7px;background:var(--purple-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🎨</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Event_Poster_v2.png</div><div style="font-size:11px;color:var(--text3);">Priya · May 6 · 3.1 MB · All members</div></div><div class="btn btn-sm">Preview</div><div class="btn btn-sm">Share</div></div>
+        <div class="doc-row"><div style="width:36px;height:36px;border-radius:7px;background:var(--amber-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📋</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Hackathon_Problem_Set.pdf</div><div style="font-size:11px;color:var(--text3);">Admin · May 5 · 210 KB · Restricted</div></div><div class="btn btn-sm">Preview</div><div class="btn btn-sm">Share</div></div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="view" id="view-notifs">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="font-size:15px;font-weight:500;">Notifications</div>
+          <div class="btn btn-sm">Mark all read</div>
+        </div>
+        <div class="card">
+          <div class="notif-item" style="background:var(--blue-bg);border-radius:7px;padding:11px 13px;margin:-4px -4px 10px;"><div class="notif-icon" style="background:#fff;">📢</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Coordinators meeting tomorrow at 10 AM in Room 204</div><div style="font-size:11px;color:var(--blue-t);">Sarah Chen · Broadcast · Now</div></div></div>
+          <div class="notif-item"><div class="notif-icon" style="background:var(--red-bg);">!</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Task overdue: Finalize speaker list</div><div style="font-size:11px;color:var(--text3);">Tech Symposium · Rohan Mehta · Due May 8</div></div><span style="font-size:11px;color:var(--text3);">2h ago</span></div>
+          <div class="notif-item"><div class="notif-icon" style="background:var(--green-bg);">✓</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Task completed: Book venue</div><div style="font-size:11px;color:var(--text3);">Completed by Ananya Patel</div></div><span style="font-size:11px;color:var(--text3);">3h ago</span></div>
+          <div class="notif-item"><div class="notif-icon" style="background:var(--amber-bg);">💬</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">New message in Cultural Fest</div><div style="font-size:11px;color:var(--text3);">Priya: Can we move the rehearsal?</div></div><span style="font-size:11px;color:var(--text3);">5h ago</span></div>
+          <div class="notif-item"><div class="notif-icon" style="background:var(--purple-bg);">📁</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">File uploaded: Tech Symposium Budget.pdf</div><div style="font-size:11px;color:var(--text3);">Uploaded by Admin</div></div><span style="font-size:11px;color:var(--text3);">1d ago</span></div>
+        </div>
+      </div>
+
+      <!-- USERS -->
+      <div class="view" id="view-users">
+        <div style="display:flex;justify-content:space-between;margin-bottom:16px;align-items:center;">
+          <div style="font-size:15px;font-weight:500;">Users & Roles</div>
+          <div class="btn btn-primary">+ Invite User</div>
+        </div>
+        <div class="card">
+          <table class="tbl">
+            <thead><tr><th>User</th><th>Role</th><th>Domain</th><th>Tasks</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="av av-blue" style="width:26px;height:26px;font-size:10px;">SC</div><div><div style="font-weight:500;font-size:12px;">Sarah Chen</div><div style="font-size:11px;color:var(--text3);">sarah@college.edu</div></div></div></td><td><span class="tag tag-blue">Admin</span></td><td>All</td><td>24</td><td><span class="tag tag-green">Active</span></td><td><div class="btn btn-sm">Edit</div></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="av av-teal" style="width:26px;height:26px;font-size:10px;">RM</div><div><div style="font-weight:500;font-size:12px;">Rohan Mehta</div><div style="font-size:11px;color:var(--text3);">rohan@college.edu</div></div></div></td><td><span class="tag tag-purple">Event Head</span></td><td>Technical</td><td>13</td><td><span class="tag tag-amber">At risk</span></td><td><div class="btn btn-sm">Edit</div></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="av av-purple" style="width:26px;height:26px;font-size:10px;">AP</div><div><div style="font-weight:500;font-size:12px;">Ananya Patel</div><div style="font-size:11px;color:var(--text3);">ananya@college.edu</div></div></div></td><td><span class="tag tag-teal">Domain Head</span></td><td>Technical</td><td>18</td><td><span class="tag tag-green">Active</span></td><td><div class="btn btn-sm">Edit</div></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="av av-amber" style="width:26px;height:26px;font-size:10px;">KS</div><div><div style="font-weight:500;font-size:12px;">Karan Singh</div><div style="font-size:11px;color:var(--text3);">karan@college.edu</div></div></div></td><td><span class="tag tag-amber">Volunteer</span></td><td>Cultural</td><td>9</td><td><span class="tag tag-green">Active</span></td><td><div class="btn btn-sm">Edit</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- NOTIF SETTINGS -->
+      <div class="view" id="view-notif-settings">
+        <div style="font-size:15px;font-weight:500;margin-bottom:16px;">Notification Settings</div>
+        <div class="g2">
+          <div class="card"><div class="card-title">In-app alerts</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid var(--border);"><div><div style="font-size:13px;">Task assigned to me</div><div style="font-size:11px;color:var(--text3);">Immediate</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid var(--border);"><div><div style="font-size:13px;">Deadline approaching</div><div style="font-size:11px;color:var(--text3);">24h and 1h before</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid var(--border);"><div><div style="font-size:13px;">New chat message</div><div style="font-size:11px;color:var(--text3);">When @mentioned</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid var(--border);"><div><div style="font-size:13px;">Admin broadcast</div><div style="font-size:11px;color:var(--text3);">Cannot disable</div></div><div class="toggle on" style="opacity:0.5;pointer-events:none;"></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;"><div><div style="font-size:13px;">File uploads</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+          </div>
+          <div class="card"><div class="card-title">Email & WebSocket</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid var(--border);"><div><div style="font-size:13px;">Daily digest</div><div style="font-size:11px;color:var(--text3);">Summary at 8 AM</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid var(--border);"><div><div style="font-size:13px;">Overdue email alerts</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid var(--border);"><div><div style="font-size:13px;">Weekly report</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+            <div style="margin-top:12px;padding:11px 13px;background:var(--green-bg);border-radius:7px;">
+              <div style="display:flex;align-items:center;gap:8px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--green);"></div><div style="font-size:13px;font-weight:500;color:var(--green);">WebSocket Connected</div></div>
+              <div style="font-size:11px;color:var(--green);margin-top:3px;">ws://events.college.edu:3001 · Live updates active</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="view" id="view-profile">
+        <div style="font-size:15px;font-weight:500;margin-bottom:16px;">Profile & Security</div>
+        <div class="g2">
+          <div class="card">
+            <div style="display:flex;flex-direction:column;align-items:center;padding:12px 0 16px;border-bottom:0.5px solid var(--border);margin-bottom:16px;">
+              <div class="av av-blue" style="width:64px;height:64px;font-size:22px;margin-bottom:10px;">SC</div>
+              <div style="font-size:15px;font-weight:500;">Sarah Chen</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;">sarah@college.edu</div>
+              <span class="tag tag-blue" style="margin-top:8px;">Faculty Coordinator · Admin</span>
+            </div>
+            <div class="field"><div class="label">Display name</div><input type="text" value="Sarah Chen" /></div>
+            <div class="field"><div class="label">Email</div><input type="email" value="sarah@college.edu" /></div>
+            <div class="field"><div class="label">Department</div><input type="text" value="Computer Science" /></div>
+            <div class="btn btn-primary" style="width:100%;justify-content:center;">Save Profile</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Security</div>
+            <div class="field"><div class="label">Current password</div><input type="password" placeholder="••••••••" /></div>
+            <div class="field"><div class="label">New password</div><input type="password" placeholder="••••••••" /></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-top:0.5px solid var(--border);margin-top:4px;margin-bottom:12px;"><div><div style="font-size:13px;">Two-factor auth</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+            <div class="btn btn-primary" style="width:100%;justify-content:center;">Update Password</div>
+            <div style="margin-top:16px;"><div class="card-title">Active Sessions</div>
+              <div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:0.5px solid var(--border);"><span style="font-size:18px;">💻</span><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Chrome · Windows</div><div style="font-size:11px;color:var(--text3);">Current · Bengaluru, IN</div></div><span class="tag tag-green">Active</span></div>
+              <div style="display:flex;align-items:center;gap:9px;padding:9px 0;"><span style="font-size:18px;">📱</span><div style="flex:1;"><div style="font-size:13px;font-weight:500;">Safari · iPhone</div><div style="font-size:11px;color:var(--text3);">2h ago</div></div><div class="btn btn-sm btn-danger">Revoke</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- MODALS -->
+<div class="modal-bg" id="modal-create-event">
+  <div class="modal">
+    <div class="modal-close" onclick="closeModal('modal-create-event')">×</div>
+    <div class="modal-title">Create New Event</div>
+    <div class="field"><div class="label">Event name *</div><input type="text" placeholder="e.g. Tech Symposium 2025" /></div>
+    <div class="g2" style="margin-bottom:14px;">
+      <div><div class="label">Start date</div><input type="date" /></div>
+      <div><div class="label">End date</div><input type="date" /></div>
+    </div>
+    <div class="field"><div class="label">Domain</div><select><option>Technical</option><option>Cultural</option><option>Sports</option><option>Literary</option></select></div>
+    <div class="field"><div class="label">Event Head</div><select><option>Rohan Mehta</option><option>Ananya Patel</option><option>Priya Kumar</option></select></div>
+    <div class="field"><div class="label">Description</div><textarea placeholder="Describe the event..."></textarea></div>
+    <div style="display:flex;gap:9px;"><div class="btn" style="flex:1;justify-content:center;" onclick="closeModal('modal-create-event')">Cancel</div><div class="btn btn-primary" style="flex:1;justify-content:center;" onclick="closeModal('modal-create-event')">Create Event</div></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-create-task">
+  <div class="modal">
+    <div class="modal-close" onclick="closeModal('modal-create-task')">×</div>
+    <div class="modal-title">Create Task</div>
+    <div class="field"><div class="label">Title *</div><input type="text" placeholder="Task name..." /></div>
+    <div class="g2" style="margin-bottom:14px;">
+      <div><div class="label">Due date</div><input type="date" /></div>
+      <div><div class="label">Priority</div><select><option>Normal</option><option>High</option><option>Critical</option></select></div>
+    </div>
+    <div class="field"><div class="label">Assign to</div><select><option>Rohan Mehta</option><option>Ananya Patel</option><option>Karan Singh</option><option>Priya Kumar</option></select></div>
+    <div class="field"><div class="label">Linked event</div><select><option>Tech Symposium 2025</option><option>Cultural Fest</option><option>Hackathon</option></select></div>
+    <div style="display:flex;gap:9px;"><div class="btn" style="flex:1;justify-content:center;" onclick="closeModal('modal-create-task')">Cancel</div><div class="btn btn-primary" style="flex:1;justify-content:center;" onclick="closeModal('modal-create-task')">Create Task</div></div>
+  </div>
+</div>
+
+<script>
+const allViews = ['dashboard','domains','events','chat','tasks','calendar','gantt','analytics','docs','notifs','users','notif-settings','profile'];
+const viewTitles = {dashboard:'Dashboard',domains:'Domain Management',events:'Events',chat:'Real-Time Chat',tasks:'Task Management',calendar:'Calendar',gantt:'Gantt Chart',analytics:'Analytics',docs:'Documents',notifs:'Notifications',users:'Users & Roles','notif-settings':'Notification Settings',profile:'Profile'};
+const adminViews = ['domains','users'];
+let currentRole = 'admin';
+
+function nav(view) {
+  if (currentRole !== 'admin' && adminViews.includes(view)) return;
+  allViews.forEach(v => { document.getElementById('view-'+v).classList.remove('active'); });
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  const item = document.querySelector('[onclick="nav(\''+view+'\')"]');
+  if (item) item.classList.add('active');
+  document.getElementById('topbar-title').textContent = viewTitles[view] || view;
+  if (view === 'gantt') renderGantt();
+}
+
+function toggleRole() {
+  currentRole = currentRole === 'admin' ? 'member' : 'admin';
+  const badge = document.getElementById('role-badge');
+  const name = document.getElementById('user-name');
+  const sub = document.getElementById('user-role-sub');
+  const av = document.getElementById('user-av');
+  const admItems = document.querySelectorAll('.admin-only');
+  if (currentRole === 'admin') {
+    badge.textContent='Admin'; badge.className='tag tag-blue';
+    name.textContent='Sarah Chen'; sub.textContent='Faculty Coordinator'; av.textContent='SC'; av.className='av av-blue';
+    admItems.forEach(i => i.style.display='');
+  } else {
+    badge.textContent='Member'; badge.className='tag tag-teal';
+    name.textContent='Rohan Mehta'; sub.textContent='Event Head'; av.textContent='RM'; av.className='av av-teal';
+    admItems.forEach(i => i.style.display='none');
+    nav('dashboard');
+  }
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
+
+function sendMsg() {
+  const inp = document.getElementById('chat-input');
+  const text = inp.value.trim(); if (!text) return;
+  const msgs = document.getElementById('chat-messages');
+  const d = document.createElement('div'); d.className='msg';
+  d.innerHTML=`<div class="av av-blue" style="width:30px;height:30px;font-size:11px;">SC</div><div><div style="display:flex;gap:7px;align-items:baseline;margin-bottom:3px;"><span style="font-size:12px;font-weight:500;color:var(--blue-t);">Sarah Chen</span><span style="font-size:11px;color:var(--text3);">Just now</span></div><div class="msg-text">${text.replace(/</g,'&lt;')}</div></div>`;
+  msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; inp.value='';
+  document.getElementById('chat-bdg').textContent='0';
+}
+
+function convertMsg(btn, type) {
+  const labels = {task:'Task created ✓', reminder:'Reminder set ✓', calendar:'Added to calendar ✓'};
+  btn.textContent = labels[type]; btn.style.background='var(--green-bg)'; btn.style.color='var(--green)'; btn.style.borderColor='transparent';
+  const c = document.getElementById('msg-confirm'); c.style.display='block';
+  setTimeout(()=>c.style.display='none', 3000);
+}
+
+const ganttData = {
+  'Tech Symposium':[{n:'Book venue',s:0,l:30,st:'done'},{n:'Create poster',s:5,l:28,st:'done'},{n:'Speaker confirmation',s:15,l:40,st:'overdue'},{n:'AV setup plan',s:32,l:24,st:'active'},{n:'Catering coord.',s:40,l:28,st:'active'},{n:'Participant invites',s:30,l:32,st:'active'},{n:'Registration portal',s:52,l:20,st:'pending'},{n:'Event day logistics',s:70,l:30,st:'pending'}],
+  'Cultural Fest':[{n:'Book auditorium',s:0,l:25,st:'done'},{n:'Design posters',s:10,l:30,st:'active'},{n:'Performer outreach',s:20,l:40,st:'active'},{n:'Stage setup',s:55,l:25,st:'pending'},{n:'Food stalls',s:65,l:20,st:'pending'}],
+  'Hackathon':[{n:'Problem statement',s:0,l:35,st:'done'},{n:'Registration portal',s:30,l:30,st:'active'},{n:'Judge coordination',s:40,l:35,st:'active'},{n:'Sponsor outreach',s:10,l:50,st:'overdue'},{n:'Venue booking',s:55,l:20,st:'pending'}],
+  'Sports Meet':[{n:'Venue booking',s:0,l:30,st:'done'},{n:'Team registration',s:20,l:35,st:'active'},{n:'Equipment setup',s:50,l:25,st:'pending'},{n:'Referee coordination',s:40,l:30,st:'active'}]
+};
+const stColors={done:'#3B6D11',active:'#185FA5',overdue:'#A32D2D',pending:'#888780'};
+
+function renderGantt() {
+  const ev = document.getElementById('gantt-event').value;
+  const fl = document.getElementById('gantt-filter').value;
+  let tasks = ganttData[ev]||[];
+  if (fl!=='all') tasks=tasks.filter(t=>t.st===fl);
+  document.getElementById('gantt-rows').innerHTML = tasks.map(t=>`
+    <div style="display:flex;align-items:center;height:38px;border-bottom:0.5px solid var(--border);">
+      <div style="width:170px;flex-shrink:0;font-size:12px;padding-right:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.n}</div>
+      <div style="flex:1;position:relative;height:22px;">
+        <div class="gbar" style="left:${t.s}%;width:${t.l}%;background:${stColors[t.st]};">${t.l>18?t.n:''}</div>
+      </div>
+    </div>`).join('');
+}
+
+renderGantt();
+</script>
+</body>
+</html>
