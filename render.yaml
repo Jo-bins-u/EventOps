@@ -11,7 +11,7 @@ services:
       - key: PORT
         value: 10000
       - key: MONGO_URI
-        placeholder: "mongodb+srv://username:password@cluster.mongodb.net/eventops"
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
