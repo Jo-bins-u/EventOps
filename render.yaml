@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     buildCommand: cd react-app && npm install --production=false --legacy-peer-deps && GENERATE_SOURCEMAP=false npm run build && cd ../backend && npm install --legacy-peer-deps
-    startCommand: cd backend && node server.js
+    startCommand: cd backend && node config/seed.js && node server.js
     envVars:
       - key: NODE_ENV
         value: production
