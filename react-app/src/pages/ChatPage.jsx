@@ -4,9 +4,11 @@ import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useSocket } from '../hooks/useSocket';
 import { useAuthStore } from '../store/authStore';
+import { useEventContextStore } from '../store/eventContextStore';
 import { analyzeMessage } from '../utils/nlp';
 
 export default function ChatPage() {
+  const { selectedEvent } = useEventContextStore();
   const { user } = useAuthStore();
   const { emit, on, off, joinRoom, leaveRoom } = useSocket();
   const qc = useQueryClient();
@@ -24,6 +26,17 @@ export default function ChatPage() {
     queryKey: ['chat-rooms'],
     queryFn: () => api.get('/chat/rooms').then(r => r.data),
   });
+
+  const { data: events = [] } = useQuery({
+    queryKey: ['events'],
+    queryFn: () => api.get('/events').then(r => r.data),
+  });
+
+  const subEvents = events.filter(e => e.parentEvent === selectedEvent?.id || e.parentEvent?._id === selectedEvent?.id);
+  const subEventsIds = subEvents.map(se => se._id);
+  const allowedEventIds = [selectedEvent?.id, ...subEventsIds];
+
+  const scopedRooms = rooms.filter(r => !r.event || allowedEventIds.includes(r.event?._id || r.event));
 
   // Fetch messages for active room
   const { data: history = [] } = useQuery({
@@ -138,7 +151,7 @@ export default function ChatPage() {
       }}>
         <div style={{ padding: '16px 14px 8px', fontSize: '10px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Channels</div>
         <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '10px' }}>
-          {rooms.map((room) => {
+          {scopedRooms.map((room) => {
             const isActive = activeRoom?._id === room._id;
             return (
               <div

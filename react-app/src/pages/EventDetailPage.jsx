@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useAuthStore } from '../store/authStore';
+import { useEventContextStore } from '../store/eventContextStore';
 import {
   PinRegular,
   ChatRegular,
@@ -13,7 +14,9 @@ import {
   WarningRegular,
   DocumentRegular,
   DismissRegular,
-  ArrowUploadRegular
+  ArrowUploadRegular,
+  CalendarRegular,
+  DeleteRegular
 } from '@fluentui/react-icons';
 
 export default function EventDetailPage() {
@@ -23,6 +26,7 @@ export default function EventDetailPage() {
   const [tab, setTab] = useState('overview');
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
+  const [showSubModal, setShowSubModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [taskForm, setTaskForm] = useState({ title: '', description: '', dueDate: '', priority: 'normal', assignedTo: '' });
 
@@ -67,7 +71,34 @@ export default function EventDetailPage() {
 
   const addMember = useMutation({
     mutationFn: (userId) => api.post(`/events/${id}/members`, { userId }),
-    onSuccess: () => { qc.invalidateQueries(['event', id]); toast.success('Member added'); },
+    onSuccess: () => { qc.invalidateQueries(['event', id]); toast.success('Member added'); setShowMemberModal(false); },
+  });
+
+  const navigate = useNavigate();
+  const { clearEvent } = useEventContextStore();
+
+  const deleteEvent = useMutation({
+    mutationFn: () => api.delete(`/events/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries(['events']);
+      qc.invalidateQueries(['overallEvents']);
+      if (event.parentEvent) {
+        toast.success('Subevent deleted!');
+        navigate(`/events/${event.parentEvent._id || event.parentEvent}`);
+      } else {
+        toast.success('Overall event deleted!');
+        clearEvent();
+        navigate('/select-event');
+      }
+    },
+  });
+
+  const removeMember = useMutation({
+    mutationFn: (userId) => api.delete(`/events/${id}/members/${userId}`),
+    onSuccess: () => {
+      qc.invalidateQueries(['event', id]);
+      toast.success('Member removed');
+    },
   });
 
   if (isLoading) return <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>Loading event…</div>;
@@ -76,6 +107,7 @@ export default function EventDetailPage() {
   const completed = tasks.filter(t => t.status === 'completed').length;
   const overdueCount = tasks.filter(t => t.status === 'overdue').length;
   const rate = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
+  const isOverallEvent = !event.parentEvent;
   const statusColor = { active: 'tag-blue', planning: 'tag-green', completed: 'tag-teal', draft: 'tag-purple', cancelled: 'tag-red' };
   const TABS = [
     ['overview', 'Overview'],
@@ -127,7 +159,26 @@ export default function EventDetailPage() {
                 <EditRegular style={{ width: '14px', height: '14px' }} /> Edit Event
               </button>
             )}
-            {hasPermission('ASSIGN_TASK') && (
+            {user?.role === 'admin' && (
+              <button 
+                className="btn btn-sm" 
+                onClick={() => {
+                  if (confirm('Delete this event and all its tasks?')) {
+                    deleteEvent.mutate();
+                  }
+                }}
+                disabled={deleteEvent.isPending}
+                style={{ background: 'var(--red)', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                <DeleteRegular style={{ width: '14px', height: '14px' }} /> Delete
+              </button>
+            )}
+            {hasPermission('CREATE_EVENT') && isOverallEvent && (
+              <button className="btn btn-sm btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} onClick={() => setShowSubModal(true)}>
+                <AddRegular style={{ width: '14px', height: '14px' }} /> Subevent
+              </button>
+            )}
+            {hasPermission('ASSIGN_TASK') && !isOverallEvent && (
               <button className="btn btn-sm btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} onClick={() => setShowTaskModal(true)}>
                 <AddRegular style={{ width: '14px', height: '14px' }} /> Task
               </button>
@@ -322,7 +373,14 @@ export default function EventDetailPage() {
                   <td style={{ fontSize: '12px', color: 'var(--text3)' }}>{m.email}</td>
                   <td>
                     {hasPermission('MANAGE_DOMAIN') && (
-                      <button className="btn btn-sm" onClick={() => toast('Opening permission editor…')}>Edit role</button>
+                      <button 
+                        className="btn btn-sm" 
+                        disabled={removeMember.isPending}
+                        style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--red)', border: 'none' }}
+                        onClick={() => removeMember.mutate(m._id)}
+                      >
+                        Remove
+                      </button>
                     )}
                   </td>
                 </tr>

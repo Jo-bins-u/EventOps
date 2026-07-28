@@ -10,16 +10,52 @@ import {
   ChatRegular
 } from '@fluentui/react-icons';
 
+import { useEventContextStore } from '../store/eventContextStore';
+import LoadingScreen from '../components/LoadingScreen';
+
 export default function Dashboard() {
   const { user } = useAuthStore();
+  const { selectedEvent } = useEventContextStore();
 
-  const { data: overview } = useQuery({ queryKey: ['analytics-overview'], queryFn: () => api.get('/analytics/overview').then(r => r.data) });
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => api.get('/events').then(r => r.data) });
-  const { data: tasks = [] } = useQuery({ queryKey: ['my-tasks'], queryFn: () => api.get('/tasks').then(r => r.data) });
-  const { data: notifications = [] } = useQuery({ queryKey: ['notifications'], queryFn: () => api.get('/notifications').then(r => r.data) });
+  const { data: parentEvent, isLoading: parentLoading } = useQuery({
+    queryKey: ['parentEvent', selectedEvent?.id],
+    queryFn: () => api.get(`/events/${selectedEvent.id}`).then(r => r.data),
+    enabled: !!selectedEvent?.id,
+  });
 
-  const myTasks = tasks.slice(0, 6);
-  const upcomingEvents = events.filter(e => e.status !== 'completed').slice(0, 5);
+  const { data: events = [], isLoading: eventsLoading } = useQuery({
+    queryKey: ['events'],
+    queryFn: () => api.get('/events').then(r => r.data),
+  });
+
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+    queryKey: ['my-tasks'],
+    queryFn: () => api.get('/tasks').then(r => r.data),
+  });
+
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api.get('/notifications').then(r => r.data),
+  });
+
+  if (parentLoading || eventsLoading || tasksLoading) {
+    return <LoadingScreen message="Loading dashboard..." />;
+  }
+
+  // Scope subevents
+  const subEvents = events.filter(
+    (e) => e.parentEvent === selectedEvent?.id || e.parentEvent?._id === selectedEvent?.id
+  );
+  const subEventsIds = subEvents.map((se) => se._id);
+
+  // Scope tasks belonging to the subevents
+  const scopedTasks = tasks.filter((t) => subEventsIds.includes(t.event?._id || t.event));
+  const completedTasks = scopedTasks.filter((t) => t.status === 'completed').length;
+  const overdueTasks = scopedTasks.filter((t) => t.status === 'overdue').length;
+  const completionRate = scopedTasks.length ? Math.round((completedTasks / scopedTasks.length) * 100) : 0;
+
+  const myTasks = scopedTasks.slice(0, 6);
+  const upcomingEvents = subEvents.filter((e) => e.status !== 'completed').slice(0, 5);
   const recentNotifs = notifications.slice(0, 4);
 
   const statusColor = { active: 'tag-blue', planning: 'tag-green', setup: 'tag-amber', completed: 'tag-teal', draft: 'tag-purple' };
@@ -33,10 +69,26 @@ export default function Dashboard() {
 
       {/* Metrics */}
       <div className="g4" style={{ marginBottom: '18px' }}>
-        <div className="metric"><div className="metric-label">Active Events</div><div className="metric-value">{overview?.activeEvents ?? '—'}</div><div className="metric-sub" style={{ color: 'var(--green)' }}>+3 this month</div></div>
-        <div className="metric"><div className="metric-label">Total Tasks</div><div className="metric-value">{overview?.totalTasks ?? '—'}</div><div className="metric-sub">{overview?.completedTasks} completed</div></div>
-        <div className="metric"><div className="metric-label">Team Members</div><div className="metric-value">{overview?.totalUsers ?? '—'}</div><div className="metric-sub">{overview?.activeUsers} active this week</div></div>
-        <div className="metric"><div className="metric-label">Completion Rate</div><div className="metric-value">{overview?.completionRate ?? '—'}%</div><div className="metric-sub" style={{ color: overview?.overdueTasks > 0 ? 'var(--red)' : 'var(--green)' }}>{overview?.overdueTasks} overdue</div></div>
+        <div className="metric">
+          <div className="metric-label">Active Subevents</div>
+          <div className="metric-value">{upcomingEvents.length}</div>
+          <div className="metric-sub" style={{ color: 'var(--blue)' }}>Scope: {selectedEvent?.name}</div>
+        </div>
+        <div className="metric">
+          <div className="metric-label">Total Tasks</div>
+          <div className="metric-value">{scopedTasks.length}</div>
+          <div className="metric-sub">{completedTasks} completed</div>
+        </div>
+        <div className="metric">
+          <div className="metric-label">Team Members</div>
+          <div className="metric-value">{parentEvent?.members?.length || 0}</div>
+          <div className="metric-sub">Event participants</div>
+        </div>
+        <div className="metric">
+          <div className="metric-label">Completion Rate</div>
+          <div className="metric-value">{completionRate}%</div>
+          <div className="metric-sub" style={{ color: overdueTasks > 0 ? 'var(--red)' : 'var(--green)' }}>{overdueTasks} overdue</div>
+        </div>
       </div>
 
       <div className="g2">
@@ -86,14 +138,18 @@ export default function Dashboard() {
       <div className="g2" style={{ marginTop: '14px' }}>
         {/* Event Progress */}
         <div className="card">
-          <div className="card-title">Event Progress</div>
-          {events.slice(0, 5).map(ev => (
-            <div key={ev._id} className="anbar">
-              <div className="anbar-label">{ev.name}</div>
-              <div className="anbar-track"><div className="anbar-fill" style={{ width: `${ev.completionRate || 0}%`, background: ev.domain?.color || 'var(--blue)' }} /></div>
-              <div className="anbar-val">{ev.completionRate || 0}%</div>
-            </div>
-          ))}
+          <div className="card-title">Subevent Progress</div>
+          {subEvents.length === 0 ? (
+            <div style={{ color: 'var(--text3)', fontSize: '13px' }}>No subevents created yet.</div>
+          ) : (
+            subEvents.slice(0, 5).map(ev => (
+              <div key={ev._id} className="anbar">
+                <div className="anbar-label">{ev.name}</div>
+                <div className="anbar-track"><div className="anbar-fill" style={{ width: `${ev.completionRate || 0}%`, background: ev.domain?.color || 'var(--blue)' }} /></div>
+                <div className="anbar-val">{ev.completionRate || 0}%</div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Recent Notifications */}

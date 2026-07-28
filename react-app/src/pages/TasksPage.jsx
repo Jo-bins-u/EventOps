@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useAuthStore } from '../store/authStore';
+import { useEventContextStore } from '../store/eventContextStore';
 import {
   AddRegular,
   ChatRegular,
@@ -14,6 +15,7 @@ import {
 } from '@fluentui/react-icons';
 
 export default function TasksPage() {
+  const { selectedEvent } = useEventContextStore();
   const { user, hasPermission } = useAuthStore();
   const qc = useQueryClient();
   const [filters, setFilters] = useState({ event: '', status: '', priority: '' });
@@ -31,6 +33,15 @@ export default function TasksPage() {
 
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => api.get('/events').then(r => r.data) });
   const { data: users = [] } = useQuery({ queryKey: ['users'], queryFn: () => api.get('/users').then(r => r.data), enabled: hasPermission('ASSIGN_TASK') });
+
+  const subEvents = events.filter(e => e.parentEvent === selectedEvent?.id || e.parentEvent?._id === selectedEvent?.id);
+  const subEventsIds = subEvents.map(se => se._id);
+  
+  // Filter tasks to only show those belonging to subevents under selectedOverallEvent
+  const scopedTasks = tasks.filter(t => {
+    const eventId = t.event?._id || t.event;
+    return subEventsIds.includes(eventId);
+  });
 
   const createMutation = useMutation({
     mutationFn: (data) => api.post('/tasks', data),
@@ -57,7 +68,7 @@ export default function TasksPage() {
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <select value={filters.event} onChange={e => setFilters(f => ({ ...f, event: e.target.value }))} style={{ width: 'auto', padding: '6px 10px', fontSize: '12px' }}>
             <option value="">All events</option>
-            {events.map(ev => <option key={ev._id} value={ev._id}>{ev.name}</option>)}
+            {subEvents.map(ev => <option key={ev._id} value={ev._id}>{ev.name}</option>)}
           </select>
           <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))} style={{ width: 'auto', padding: '6px 10px', fontSize: '12px' }}>
             <option value="">All statuses</option>
@@ -84,7 +95,7 @@ export default function TasksPage() {
       <div className="card">
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)' }}>Loading tasks…</div>
-        ) : tasks.length === 0 ? (
+        ) : scopedTasks.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)' }}>No tasks found.</div>
         ) : (
           <table className="tbl">
@@ -101,7 +112,7 @@ export default function TasksPage() {
               </tr>
             </thead>
             <tbody>
-              {tasks.map(task => (
+              {scopedTasks.map(task => (
                 <tr key={task._id}>
                   <td>
                     <div
@@ -183,7 +194,7 @@ export default function TasksPage() {
             <div className="field"><label className="label">Event *</label>
               <select value={form.event} onChange={e => setForm(f => ({ ...f, event: e.target.value }))}>
                 <option value="">Select event…</option>
-                {events.map(ev => <option key={ev._id} value={ev._id}>{ev.name}</option>)}
+                {subEvents.map(ev => <option key={ev._id} value={ev._id}>{ev.name}</option>)}
               </select>
             </div>
             <div style={{ display: 'flex', gap: '9px', marginTop: '6px' }}>

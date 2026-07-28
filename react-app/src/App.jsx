@@ -19,9 +19,22 @@ import UsersPage from './pages/UsersPage';
 import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
 
+import { useEventContextStore } from './store/eventContextStore';
+import SelectEventPage from './pages/SelectEventPage';
+
 function PrivateRoute({ children }) {
   const { isAuthenticated } = useAuthStore();
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+}
+
+function ScopedRoute({ children }) {
+  const { isAuthenticated } = useAuthStore();
+  const { selectedEvent } = useEventContextStore();
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!selectedEvent) return <Navigate to="/select-event" replace />;
+
+  return children;
 }
 
 function AdminRoute({ children }) {
@@ -36,7 +49,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
-      <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+      <Route path="/select-event" element={<PrivateRoute><SelectEventPage /></PrivateRoute>} />
+      <Route path="/" element={<ScopedRoute><Layout /></ScopedRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="events/:id" element={<EventDetailPage />} />

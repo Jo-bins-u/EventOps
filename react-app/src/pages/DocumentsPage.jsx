@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useAuthStore } from '../store/authStore';
+import { useEventContextStore } from '../store/eventContextStore';
 import {
   DocumentPdfRegular,
   ImageRegular,
@@ -29,6 +30,7 @@ const FILE_ICONS = {
 const FILE_COLORS = { 'application/pdf': 'var(--red-bg)', 'image/png': 'var(--blue-bg)', 'image/jpeg': 'var(--blue-bg)', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'var(--purple-bg)', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'var(--green-bg)' };
 
 export default function DocumentsPage() {
+  const { selectedEvent } = useEventContextStore();
   const { user, hasPermission } = useAuthStore();
   const qc = useQueryClient();
   const fileInputRef = useRef();
@@ -44,6 +46,16 @@ export default function DocumentsPage() {
   });
 
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => api.get('/events').then(r => r.data) });
+
+  const subEvents = events.filter(e => e.parentEvent === selectedEvent?.id || e.parentEvent?._id === selectedEvent?.id);
+  const subEventsIds = subEvents.map(se => se._id);
+
+  const scopedDocs = docs.filter(d => {
+    const docEventId = d.event?._id || d.event;
+    // If filtering by specific subevent, only show that. If "all", show all subevents of active Overall Event
+    if (filterEvent) return docEventId === filterEvent;
+    return subEventsIds.includes(docEventId);
+  });
 
   const uploadMutation = useMutation({
     mutationFn: async (formData) => {
@@ -95,7 +107,7 @@ export default function DocumentsPage() {
         <div style={{ display: 'flex', gap: '8px' }}>
           <select value={filterEvent} onChange={e => setFilterEvent(e.target.value)} style={{ width: 'auto', padding: '6px 10px', fontSize: '12px' }}>
             <option value="">All events</option>
-            {events.map(ev => <option key={ev._id} value={ev._id}>{ev.name}</option>)}
+            {subEvents.map(ev => <option key={ev._id} value={ev._id}>{ev.name}</option>)}
           </select>
           {hasPermission('UPLOAD_DOCS') && (
             <button className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} onClick={() => setShowUpload(true)}>
@@ -106,15 +118,15 @@ export default function DocumentsPage() {
       </div>
 
       {isLoading ? (
-        <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)' }}>Loading documents…</div>
-      ) : docs.length === 0 ? (
+        <LoadingScreen message="Loading documents..." />
+      ) : scopedDocs.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <FolderRegular style={{ width: '48px', height: '48px', marginBottom: '12px', color: 'var(--text3)' }} />
           <div>No documents found. {hasPermission('UPLOAD_DOCS') ? 'Upload the first one!' : ''}</div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {docs.map(doc => (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+          {scopedDocs.map(doc => (
             <div key={doc._id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', background: 'var(--surface)', border: '0.5px solid var(--border)', borderRadius: '10px' }}>
               <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: FILE_COLORS[doc.mimeType] || 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', flexShrink: 0 }}>
                 {FILE_ICONS[doc.mimeType] || <DocumentRegular style={{ width: '20px', height: '20px' }} />}
@@ -194,7 +206,7 @@ export default function DocumentsPage() {
             <div className="field"><label className="label">Link to event</label>
               <select value={form.event} onChange={e => setForm(f => ({ ...f, event: e.target.value }))}>
                 <option value="">— None —</option>
-                {events.map(ev => <option key={ev._id} value={ev._id}>{ev.name}</option>)}
+                {subEvents.map(ev => <option key={ev._id} value={ev._id}>{ev.name}</option>)}
               </select>
             </div>
             <div className="field"><label className="label">Access model</label>

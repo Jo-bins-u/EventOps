@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useAuthStore } from '../store/authStore';
+import { useEventContextStore } from '../store/eventContextStore';
 import {
   AddRegular,
   CalendarRegular,
@@ -12,6 +13,7 @@ import {
 } from '@fluentui/react-icons';
 
 export default function EventsPage() {
+  const { selectedEvent } = useEventContextStore();
   const { hasPermission } = useAuthStore();
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
@@ -20,11 +22,12 @@ export default function EventsPage() {
   const [form, setForm] = useState({ name: '', description: '', startDate: '', endDate: '', venue: '', domain: '', eventHead: '' });
 
   const { data: events = [], isLoading } = useQuery({
-    queryKey: ['events', statusFilter, domainFilter],
+    queryKey: ['events', selectedEvent?.id, statusFilter, domainFilter],
     queryFn: () => {
       const params = new URLSearchParams();
       if (statusFilter) params.set('status', statusFilter);
       if (domainFilter) params.set('domain', domainFilter);
+      if (selectedEvent?.id) params.set('parentEvent', selectedEvent.id);
       return api.get(`/events?${params}`).then(r => r.data);
     },
   });
@@ -33,12 +36,12 @@ export default function EventsPage() {
   const { data: users = [] } = useQuery({ queryKey: ['users'], queryFn: () => api.get('/users').then(r => r.data), enabled: hasPermission('CREATE_EVENT') });
 
   const createMutation = useMutation({
-    mutationFn: (data) => api.post('/events', data),
+    mutationFn: (data) => api.post('/events', { ...data, parentEvent: selectedEvent?.id }),
     onSuccess: () => {
       qc.invalidateQueries(['events']);
       setShowModal(false);
       setForm({ name: '', description: '', startDate: '', endDate: '', venue: '', domain: '', eventHead: '' });
-      toast.success('Event created!');
+      toast.success('Subevent created!');
     },
   });
 

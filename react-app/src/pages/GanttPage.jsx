@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { differenceInDays, addDays, startOfDay, format } from 'date-fns';
 import api from '../utils/api';
+import { useEventContextStore } from '../store/eventContextStore';
 import {
   DismissRegular,
   ArrowResetRegular,
@@ -12,6 +13,7 @@ const STATUS_COLORS = { completed: '#3B6D11', in_progress: '#185FA5', overdue: '
 const PRIORITY_BORDER = { critical: '#A32D2D', high: '#854F0B', normal: 'transparent', low: 'transparent' };
 
 export default function GanttPage() {
+  const { selectedEvent: selectedOverallEvent } = useEventContextStore();
   const [selectedEvent, setSelectedEvent] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedTask, setSelectedTask] = useState(null);
@@ -19,6 +21,8 @@ export default function GanttPage() {
   const [customEnd, setCustomEnd] = useState('');
 
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => api.get('/events').then(r => r.data) });
+  
+  const subEvents = events.filter(e => e.parentEvent === selectedOverallEvent?.id || e.parentEvent?._id === selectedOverallEvent?.id);
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['gantt-tasks', selectedEvent],
@@ -111,8 +115,8 @@ export default function GanttPage() {
         <div style={{ fontSize: '18px', fontWeight: 500 }}>Gantt Chart</div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)} style={{ width: 'auto', padding: '6px 10px', fontSize: '12px' }}>
-            <option value="">Select event…</option>
-            {events.map(ev => <option key={ev._id} value={ev._id}>{ev.name}</option>)}
+            <option value="">Select subevent…</option>
+            {subEvents.map(ev => <option key={ev._id} value={ev._id}>{ev.name}</option>)}
           </select>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ width: 'auto', padding: '6px 10px', fontSize: '12px' }}>
             <option value="all">All statuses</option>

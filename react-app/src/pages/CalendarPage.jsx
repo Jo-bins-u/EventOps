@@ -8,14 +8,21 @@ import {
   DismissRegular
 } from '@fluentui/react-icons';
 
+import { useEventContextStore } from '../store/eventContextStore';
+
 export default function CalendarPage() {
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth());
   const [year, setYear] = useState(today.getFullYear());
   const [selected, setSelected] = useState(null);
+  const { selectedEvent } = useEventContextStore();
 
   const { data: tasks = [] } = useQuery({ queryKey: ['tasks'], queryFn: () => api.get('/tasks').then(r => r.data) });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => api.get('/events').then(r => r.data) });
+
+  const subEvents = events.filter(e => e.parentEvent === selectedEvent?.id || e.parentEvent?._id === selectedEvent?.id);
+  const subEventsIds = subEvents.map(se => se._id);
+  const scopedTasks = tasks.filter(t => subEventsIds.includes(t.event?._id || t.event));
 
   const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -28,8 +35,8 @@ export default function CalendarPage() {
   const getItems = (d) => {
     const date = new Date(year, month, d).toDateString();
     return {
-      events: events.filter(e => e.startDate && new Date(e.startDate).toDateString() === date),
-      tasks: tasks.filter(t => t.dueDate && new Date(t.dueDate).toDateString() === date),
+      events: subEvents.filter(e => e.startDate && new Date(e.startDate).toDateString() === date),
+      tasks: scopedTasks.filter(t => t.dueDate && new Date(t.dueDate).toDateString() === date),
     };
   };
 

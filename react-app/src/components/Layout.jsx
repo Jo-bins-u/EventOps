@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useNotifStore } from '../store/notifStore';
+import { useEventContextStore } from '../store/eventContextStore';
 import AIAssistant from './AIAssistant';
 import CommandPalette from './CommandPalette';
 import { useAIStore } from '../store/aiStore';
@@ -48,6 +49,7 @@ const adminItems = [
 export default function Layout() {
   const { user, logout } = useAuthStore();
   const { unreadCount } = useNotifStore();
+  const { selectedEvent, clearEvent } = useEventContextStore();
   const { isOpen, setIsOpen, setCommandPaletteOpen } = useAIStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -134,6 +136,22 @@ export default function Layout() {
               <span className={`tag tag-${isAdmin ? 'blue' : 'teal'}`} style={{ borderRadius: 'var(--radius-full)' }}>
                 {user.role === 'admin' ? 'Admin' : user.role}
               </span>
+            </div>
+          )}
+          {selectedEvent && (
+            <div style={{ marginTop: '12px', padding: '8px 10px', background: 'var(--surface2)', borderRadius: 'var(--radius)', border: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Event Scope</div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={selectedEvent.name}>
+                {selectedEvent.name}
+              </div>
+              <div 
+                onClick={() => { clearEvent(); navigate('/select-event'); }} 
+                style={{ fontSize: '10px', color: 'var(--blue)', cursor: 'pointer', fontWeight: 600, width: 'fit-content' }}
+                onMouseEnter={e => e.target.style.textDecoration = 'underline'}
+                onMouseLeave={e => e.target.style.textDecoration = 'none'}
+              >
+                Change Event
+              </div>
             </div>
           )}
         </div>
