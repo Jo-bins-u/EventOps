@@ -13,10 +13,8 @@ import {
   WarningRegular,
   DocumentRegular,
   DismissRegular,
-  ArrowUploadRegular,
-  CalendarRegular
+  ArrowUploadRegular
 } from '@fluentui/react-icons';
-import LoadingScreen from '../components/LoadingScreen';
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -26,8 +24,6 @@ export default function EventDetailPage() {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState('');
-  const [showSubModal, setShowSubModal] = useState(false);
-  const [subForm, setSubForm] = useState({ name: '', description: '', startDate: '', endDate: '', venue: '', domain: '', eventHead: '' });
   const [taskForm, setTaskForm] = useState({ title: '', description: '', dueDate: '', priority: 'normal', assignedTo: '' });
 
   const { data: event, isLoading } = useQuery({
@@ -51,29 +47,7 @@ export default function EventDetailPage() {
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
     queryFn: () => api.get('/users').then(r => r.data),
-    enabled: hasPermission('MANAGE_DOMAIN') || hasPermission('CREATE_EVENT'),
-  });
-
-  const { data: subEvents = [] } = useQuery({
-    queryKey: ['subEvents', id],
-    queryFn: () => api.get(`/events?parentEvent=${id}`).then(r => r.data),
-    enabled: !!id && !!event && !event.parentEvent,
-  });
-
-  const { data: domains = [] } = useQuery({
-    queryKey: ['domains'],
-    queryFn: () => api.get('/domains').then(r => r.data),
-    enabled: !!event && !event.parentEvent,
-  });
-
-  const createSubEvent = useMutation({
-    mutationFn: (data) => api.post('/events', { ...data, parentEvent: id }),
-    onSuccess: () => {
-      qc.invalidateQueries(['subEvents', id]);
-      setShowSubModal(false);
-      setSubForm({ name: '', description: '', startDate: '', endDate: '', venue: '', domain: '', eventHead: '' });
-      toast.success('Subevent created!');
-    },
+    enabled: hasPermission('MANAGE_DOMAIN'),
   });
 
   const createTask = useMutation({
@@ -96,27 +70,14 @@ export default function EventDetailPage() {
     onSuccess: () => { qc.invalidateQueries(['event', id]); toast.success('Member added'); },
   });
 
-  if (isLoading) return <LoadingScreen message="Loading event details..." />;
+  if (isLoading) return <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text3)' }}>Loading event…</div>;
   if (!event) return <div style={{ textAlign: 'center', padding: '60px', color: 'var(--red)' }}>Event not found.</div>;
 
   const completed = tasks.filter(t => t.status === 'completed').length;
   const overdueCount = tasks.filter(t => t.status === 'overdue').length;
   const rate = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
-
-  const isOverallEvent = !event.parentEvent;
-  const subEventsCompletedTasks = subEvents.reduce((acc, curr) => acc + (curr.completedTasks || 0), 0);
-  const subEventsTotalTasks = subEvents.reduce((acc, curr) => acc + (curr.taskCount || 0), 0);
-  const overallRate = isOverallEvent
-    ? (subEventsTotalTasks ? Math.round((subEventsCompletedTasks / subEventsTotalTasks) * 100) : 0)
-    : rate;
-
   const statusColor = { active: 'tag-blue', planning: 'tag-green', completed: 'tag-teal', draft: 'tag-purple', cancelled: 'tag-red' };
-  
-  const TABS = isOverallEvent ? [
-    ['overview', 'Overview'],
-    ['subevents', `Subevents (${subEvents.length})`],
-    ['team', `Team (${event.members?.length || 0})`],
-  ] : [
+  const TABS = [
     ['overview', 'Overview'],
     ['tasks', `Tasks (${tasks.length})`],
     ['team', `Team (${event.members?.length || 0})`],
@@ -127,18 +88,9 @@ export default function EventDetailPage() {
   return (
     <div>
       {/* Breadcrumb */}
-      <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+      <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '12px' }}>
         <Link to="/events" style={{ color: 'var(--text3)', textDecoration: 'none' }}>Events</Link>
-        {event.parentEvent && (
-          <>
-            <span>/</span>
-            <Link to={`/events/${event.parentEvent._id}`} style={{ color: 'var(--text3)', textDecoration: 'none' }}>
-              {event.parentEvent.name}
-            </Link>
-          </>
-        )}
-        <span>/</span>
-        <span style={{ color: 'var(--text)' }}>{event.name}</span>
+        {' '}/{' '}<span style={{ color: 'var(--text)' }}>{event.name}</span>
       </div>
 
       {/* Event header card */}
@@ -175,12 +127,7 @@ export default function EventDetailPage() {
                 <EditRegular style={{ width: '14px', height: '14px' }} /> Edit Event
               </button>
             )}
-            {hasPermission('CREATE_EVENT') && isOverallEvent && (
-              <button className="btn btn-sm btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} onClick={() => setShowSubModal(true)}>
-                <AddRegular style={{ width: '14px', height: '14px' }} /> Subevent
-              </button>
-            )}
-            {hasPermission('ASSIGN_TASK') && !isOverallEvent && (
+            {hasPermission('ASSIGN_TASK') && (
               <button className="btn btn-sm btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} onClick={() => setShowTaskModal(true)}>
                 <AddRegular style={{ width: '14px', height: '14px' }} /> Task
               </button>
@@ -192,18 +139,14 @@ export default function EventDetailPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: '200px', maxWidth: '360px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text3)', marginBottom: '4px' }}>
-              <span>{overallRate}% complete</span>
+              <span>{rate}% complete</span>
               <span>
-                {isOverallEvent ? (
-                  `${subEvents.length} subevents`
-                ) : (
-                  `${completed}/${tasks.length} tasks`
-                )}
-                {!isOverallEvent && overdueCount > 0 && <span style={{ color: 'var(--red)', marginLeft: '6px' }}>{overdueCount} overdue</span>}
+                {completed}/{tasks.length} tasks
+                {overdueCount > 0 && <span style={{ color: 'var(--red)', marginLeft: '6px' }}>{overdueCount} overdue</span>}
               </span>
             </div>
             <div className="pbar">
-              <div className="pfill" style={{ width: `${overallRate}%`, background: event.domain?.color || 'var(--blue)' }} />
+              <div className="pfill" style={{ width: `${rate}%`, background: event.domain?.color || 'var(--blue)' }} />
             </div>
           </div>
           <div style={{ display: 'flex' }}>
@@ -239,100 +182,53 @@ export default function EventDetailPage() {
       {tab === 'overview' && (
         <div>
           <div className="g3" style={{ marginBottom: '14px' }}>
-            {isOverallEvent ? (
-              <>
-                <div className="metric">
-                  <div className="metric-label">Subevents</div>
-                  <div className="metric-value">{subEvents.length}</div>
-                </div>
-                <div className="metric">
-                  <div className="metric-label">Total Tasks</div>
-                  <div className="metric-value">{subEventsTotalTasks}</div>
-                </div>
-                <div className="metric">
-                  <div className="metric-label">Overall Completion</div>
-                  <div className="metric-value">{overallRate}%</div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="metric">
-                  <div className="metric-label">Days to event</div>
-                  <div className="metric-value">
-                    {event.startDate ? Math.max(0, Math.ceil((new Date(event.startDate) - new Date()) / 86400000)) : '—'}
-                  </div>
-                </div>
-                <div className="metric">
-                  <div className="metric-label">Overdue tasks</div>
-                  <div className="metric-value" style={{ color: overdueCount > 0 ? 'var(--red)' : 'var(--text)' }}>{overdueCount}</div>
-                </div>
-                <div className="metric">
-                  <div className="metric-label">Completion rate</div>
-                  <div className="metric-value">{rate}%</div>
-                </div>
-              </>
-            )}
+            <div className="metric">
+              <div className="metric-label">Days to event</div>
+              <div className="metric-value">
+                {event.startDate ? Math.max(0, Math.ceil((new Date(event.startDate) - new Date()) / 86400000)) : '—'}
+              </div>
+            </div>
+            <div className="metric">
+              <div className="metric-label">Overdue tasks</div>
+              <div className="metric-value" style={{ color: overdueCount > 0 ? 'var(--red)' : 'var(--text)' }}>{overdueCount}</div>
+            </div>
+            <div className="metric">
+              <div className="metric-label">Completion rate</div>
+              <div className="metric-value">{rate}%</div>
+            </div>
           </div>
-          {isOverallEvent ? (
-            <div className="g2">
-              <div className="card">
-                <div className="card-title">Subevent Progress</div>
-                {subEvents.length === 0 ? (
-                  <div style={{ color: 'var(--text3)', fontSize: '13px', padding: '10px 0' }}>No subevents yet.</div>
-                ) : (
-                  subEvents.map(se => (
-                    <div key={se._id} style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0, background: se.domain?.color || 'var(--blue)' }} />
-                      <div style={{ flex: 1, fontSize: '13px', fontWeight: 500 }}>{se.name}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{se.completionRate || 0}% complete</div>
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="card">
-                <div className="card-title">Overall Event Info</div>
-                <div style={{ fontSize: '13px', lineHeight: 1.6, color: 'var(--text2)' }}>
-                  <p style={{ margin: '0 0 6px 0' }}><strong>Timeline:</strong> {event.startDate ? new Date(event.startDate).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBD'} - {event.endDate ? new Date(event.endDate).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBD'}</p>
-                  <p style={{ margin: '0 0 6px 0' }}><strong>Venue:</strong> {event.venue || 'Various Venues'}</p>
-                  <p style={{ margin: '0 0 6px 0' }}><strong>Overall Head:</strong> {event.eventHead?.name || 'Unassigned'}</p>
-                  <p style={{ margin: '0' }}><strong>Total Members:</strong> {event.members?.length || 0} participants</p>
+          <div className="g2">
+            <div className="card">
+              <div className="card-title">Pending actions</div>
+              {tasks.filter(t => t.status !== 'completed').slice(0, 6).map(t => (
+                <div key={t._id} style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0, background: t.status === 'overdue' ? 'var(--red)' : t.status === 'in_progress' ? 'var(--blue)' : 'var(--text3)' }} />
+                  <div style={{ flex: 1, fontSize: '13px', color: t.status === 'overdue' ? 'var(--red)' : 'var(--text)' }}>{t.title}</div>
+                  {t.assignedTo && <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{t.assignedTo.name?.split(' ')[0]}</div>}
+                  <span style={{ fontSize: '11px', color: t.status === 'overdue' ? 'var(--red)' : 'var(--text3)' }}>
+                    {t.dueDate ? new Date(t.dueDate).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''}
+                  </span>
                 </div>
-              </div>
+              ))}
+              {tasks.filter(t => t.status !== 'completed').length === 0 && (
+                <div style={{ color: 'var(--green)', fontSize: '13px', padding: '8px 0' }}>✓ All tasks completed!</div>
+              )}
             </div>
-          ) : (
-            <div className="g2">
-              <div className="card">
-                <div className="card-title">Pending actions</div>
-                {tasks.filter(t => t.status !== 'completed').slice(0, 6).map(t => (
-                  <div key={t._id} style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0, background: t.status === 'overdue' ? 'var(--red)' : t.status === 'in_progress' ? 'var(--blue)' : 'var(--text3)' }} />
-                    <div style={{ flex: 1, fontSize: '13px', color: t.status === 'overdue' ? 'var(--red)' : 'var(--text)' }}>{t.title}</div>
-                    {t.assignedTo && <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{t.assignedTo.name?.split(' ')[0]}</div>}
-                    <span style={{ fontSize: '11px', color: t.status === 'overdue' ? 'var(--red)' : 'var(--text3)' }}>
-                      {t.dueDate ? new Date(t.dueDate).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''}
-                    </span>
+            <div className="card">
+              <div className="card-title">Task breakdown</div>
+              {[['completed', 'Completed', 'var(--green)'], ['in_progress', 'In Progress', 'var(--amber)'], ['pending', 'Pending', 'var(--blue)'], ['overdue', 'Overdue', 'var(--red)']].map(([status, label, color]) => {
+                const count = tasks.filter(t => t.status === status).length;
+                const pct = tasks.length ? (count / tasks.length) * 100 : 0;
+                return (
+                  <div key={status} className="anbar">
+                    <div className="anbar-label">{label}</div>
+                    <div className="anbar-track"><div className="anbar-fill" style={{ width: `${pct}%`, background: color }} /></div>
+                    <div className="anbar-val">{count}</div>
                   </div>
-                ))}
-                {tasks.filter(t => t.status !== 'completed').length === 0 && (
-                  <div style={{ color: 'var(--green)', fontSize: '13px', padding: '8px 0' }}>✓ All tasks completed!</div>
-                )}
-              </div>
-              <div className="card">
-                <div className="card-title">Task breakdown</div>
-                {[['completed', 'Completed', 'var(--green)'], ['in_progress', 'In Progress', 'var(--amber)'], ['pending', 'Pending', 'var(--blue)'], ['overdue', 'Overdue', 'var(--red)']].map(([status, label, color]) => {
-                  const count = tasks.filter(t => t.status === status).length;
-                  const pct = tasks.length ? (count / tasks.length) * 100 : 0;
-                  return (
-                    <div key={status} className="anbar">
-                      <div className="anbar-label">{label}</div>
-                      <div className="anbar-track"><div className="anbar-fill" style={{ width: `${pct}%`, background: color }} /></div>
-                      <div className="anbar-val">{count}</div>
-                    </div>
-                  );
-                })}
-              </div>
+                );
+              })}
             </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -495,128 +391,6 @@ export default function EventDetailPage() {
                 <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{event.venue || 'Venue TBD'}</div>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Subevents Tab ── */}
-      {tab === 'subevents' && (
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <div style={{ fontSize: '13px', color: 'var(--text3)' }}>{subEvents.length} subevents total</div>
-            {hasPermission('CREATE_EVENT') && (
-              <button className="btn btn-sm btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} onClick={() => setShowSubModal(true)}>
-                <AddRegular style={{ width: '14px', height: '14px' }} /> New Subevent
-              </button>
-            )}
-          </div>
-          
-          {subEvents.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <CalendarRegular style={{ width: '48px', height: '48px', marginBottom: '12px', color: 'var(--text3)' }} />
-              <div style={{ fontWeight: 500, marginBottom: '6px' }}>No subevents found</div>
-              <div style={{ fontSize: '12px', color: 'var(--text3)' }}>
-                {hasPermission('CREATE_EVENT') ? 'Create a subevent to get started.' : 'No subevents have been created yet.'}
-              </div>
-            </div>
-          ) : (
-            <div className="g2">
-              {subEvents.map(se => (
-                <div key={se._id} className="card" style={{ transition: 'background 0.1s', border: '0.5px solid var(--border)', background: 'var(--surface2)' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface3)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'var(--surface2)'}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', gap: '8px' }}>
-                    <div>
-                      <div style={{ fontSize: '14px', fontWeight: 600 }}>{se.name}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text3)' }}>
-                        {se.domain?.name}
-                        {se.startDate && ` · ${new Date(se.startDate).toLocaleDateString('en', { month: 'short', day: 'numeric' })}`}
-                      </div>
-                    </div>
-                    <span className="tag tag-blue" style={{ textTransform: 'capitalize' }}>{se.status}</span>
-                  </div>
-                  {se.description && (
-                    <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '10px', lineHeight: 1.5 }}>
-                      {se.description.length > 100 ? se.description.slice(0, 100) + '…' : se.description}
-                    </div>
-                  )}
-                  <div className="pbar" style={{ marginBottom: '7px' }}>
-                    <div className="pfill" style={{ width: `${se.completionRate || 0}%`, background: se.domain?.color || 'var(--blue)' }} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text3)', marginBottom: '12px' }}>
-                    <span>{se.completionRate || 0}% complete</span>
-                    <span>{se.taskCount || 0} tasks</span>
-                  </div>
-                  <div>
-                    <Link to={`/events/${se._id}`} className="btn btn-sm">Manage Subevent</Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Create Subevent Modal */}
-      {showSubModal && (
-        <div className="modal-bg open">
-          <div className="modal">
-            <button className="modal-close" onClick={() => setShowSubModal(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <DismissRegular style={{ width: '18px', height: '18px' }} />
-            </button>
-            <div className="modal-title">Create Subevent for {event.name}</div>
-            
-            <div className="field">
-              <label className="label">Name *</label>
-              <input value={subForm.name} onChange={e => setSubForm(f => ({ ...f, name: e.target.value }))} placeholder="Subevent name (e.g. Hackathon)…" />
-            </div>
-            
-            <div className="field">
-              <label className="label">Description</label>
-              <textarea value={subForm.description} onChange={e => setSubForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional details…" />
-            </div>
-            
-            <div className="g2" style={{ marginBottom: '14px' }}>
-              <div>
-                <label className="label">Start Date</label>
-                <input type="date" value={subForm.startDate} onChange={e => setSubForm(f => ({ ...f, startDate: e.target.value }))} />
-              </div>
-              <div>
-                <label className="label">End Date</label>
-                <input type="date" value={subForm.endDate} onChange={e => setSubForm(f => ({ ...f, endDate: e.target.value }))} />
-              </div>
-            </div>
-            
-            <div className="field">
-              <label className="label">Venue</label>
-              <input value={subForm.venue} onChange={e => setSubForm(f => ({ ...f, venue: e.target.value }))} placeholder="e.g. Auditorium 2…" />
-            </div>
-
-            <div className="g2" style={{ marginBottom: '14px' }}>
-              <div>
-                <label className="label">Domain *</label>
-                <select value={subForm.domain} onChange={e => setSubForm(f => ({ ...f, domain: e.target.value }))}>
-                  <option value="">Select Domain...</option>
-                  {domains.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="label">Event Head</label>
-                <select value={subForm.eventHead} onChange={e => setSubForm(f => ({ ...f, eventHead: e.target.value }))}>
-                  <option value="">Select Head...</option>
-                  {users.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '9px', marginTop: '6px' }}>
-              <button className="btn" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setShowSubModal(false)}>Cancel</button>
-              <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}
-                disabled={!subForm.name || !subForm.domain || createSubEvent.isPending}
-                onClick={() => createSubEvent.mutate(subForm)}>
-                {createSubEvent.isPending ? 'Creating…' : 'Create Subevent'}
-              </button>
-            </div>
           </div>
         </div>
       )}

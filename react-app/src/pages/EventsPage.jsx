@@ -10,7 +10,6 @@ import {
   ChatRegular,
   DismissRegular
 } from '@fluentui/react-icons';
-import LoadingScreen from '../components/LoadingScreen';
 
 export default function EventsPage() {
   const { hasPermission } = useAuthStore();
@@ -26,7 +25,6 @@ export default function EventsPage() {
       const params = new URLSearchParams();
       if (statusFilter) params.set('status', statusFilter);
       if (domainFilter) params.set('domain', domainFilter);
-      params.set('isSubEvent', 'false');
       return api.get(`/events?${params}`).then(r => r.data);
     },
   });
@@ -71,7 +69,7 @@ export default function EventsPage() {
       </div>
 
       {isLoading ? (
-        <LoadingScreen message="Loading events..." />
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading events…</div>
       ) : events.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <CalendarRegular style={{ width: '48px', height: '48px', marginBottom: '12px', color: 'var(--text3)' }} />
