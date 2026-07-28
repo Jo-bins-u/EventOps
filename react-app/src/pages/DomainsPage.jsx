@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+import LoadingScreen from '../components/LoadingScreen';
 
 const DOMAIN_ICONS = ['⚙', '🎭', '🏅', '📚', '💰', '🎨', '🔬', '🎵', '♟', '🌐'];
 const DOMAIN_COLORS = ['#185FA5', '#534AB7', '#0F6E56', '#854F0B', '#A32D2D', '#993556', '#2D7A6B', '#6B4A2D', '#4A6B2D', '#2D4A6B'];
@@ -33,7 +34,7 @@ export default function DomainsPage() {
 
   const selectedDomain = domains.find(d => d._id === selected);
 
-  if (isLoading) return <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)' }}>Loading domains…</div>;
+  if (isLoading) return <LoadingScreen message="Loading domains..." />;
 
   return (
     <div>

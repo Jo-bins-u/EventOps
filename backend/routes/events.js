@@ -14,11 +14,19 @@ router.use(authenticate);
 // GET /api/events  — list with optional filters
 router.get('/', async (req, res) => {
   try {
-    const { domain, status, search } = req.query;
+    const { domain, status, search, parentEvent, isSubEvent } = req.query;
     const filter = {};
     if (domain) filter.domain = domain;
     if (status) filter.status = status;
     if (search) filter.name = { $regex: search, $options: 'i' };
+    
+    if (parentEvent) {
+      filter.parentEvent = parentEvent;
+    } else if (isSubEvent === 'true') {
+      filter.parentEvent = { $ne: null };
+    } else if (isSubEvent === 'false') {
+      filter.parentEvent = null;
+    }
 
     // Non-admins only see events they're members of
     if (req.user.role !== 'admin') {
@@ -29,6 +37,7 @@ router.get('/', async (req, res) => {
       .populate('domain', 'name color')
       .populate('eventHead', 'name email')
       .populate('members', 'name email role')
+      .populate('parentEvent', 'name')
       .sort({ startDate: 1 });
 
     // Attach task stats
@@ -84,6 +93,7 @@ router.get('/:id', async (req, res) => {
       .populate('domain', 'name color icon')
       .populate('eventHead', 'name email role')
       .populate('members', 'name email role')
+      .populate('parentEvent', 'name description')
       .populate('createdBy', 'name');
     if (!event) return res.status(404).json({ message: 'Event not found' });
     res.json(event);

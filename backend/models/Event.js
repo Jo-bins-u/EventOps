@@ -13,6 +13,7 @@ const eventSchema = new mongoose.Schema({
   budget:      { total: Number, spent: Number },
   tags:        [String],
   chatRoom:    { type: mongoose.Schema.Types.ObjectId, ref: 'ChatRoom' },
+  parentEvent: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', default: null },
   createdBy:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true, toJSON: { virtuals: true } });
 

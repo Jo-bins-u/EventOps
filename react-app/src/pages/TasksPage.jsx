@@ -12,6 +12,7 @@ import {
   CheckmarkRegular,
   WarningRegular
 } from '@fluentui/react-icons';
+import LoadingScreen from '../components/LoadingScreen';
 
 export default function TasksPage() {
   const { user, hasPermission } = useAuthStore();
@@ -83,7 +84,7 @@ export default function TasksPage() {
 
       <div className="card">
         {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)' }}>Loading tasks…</div>
+        <LoadingScreen message="Loading tasks..." />
         ) : tasks.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)' }}>No tasks found.</div>
         ) : (

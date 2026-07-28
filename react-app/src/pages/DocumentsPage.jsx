@@ -16,8 +16,11 @@ import {
   DocumentArrowDownRegular,
   DocumentArrowUpRegular,
   CheckmarkCircleRegular,
-  EyeRegular
+  EyeRegular,
+  LinkRegular,
+  ArrowDownloadRegular
 } from '@fluentui/react-icons';
+import LoadingScreen from '../components/LoadingScreen';
 
 const FILE_ICONS = { 
   'application/pdf': <DocumentPdfRegular style={{ width: '20px', height: '20px' }} />, 
@@ -106,7 +109,7 @@ export default function DocumentsPage() {
       </div>
 
       {isLoading ? (
-        <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)' }}>Loading documents…</div>
+        <LoadingScreen message="Loading documents..." />
       ) : docs.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text3)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <FolderRegular style={{ width: '48px', height: '48px', marginBottom: '12px', color: 'var(--text3)' }} />

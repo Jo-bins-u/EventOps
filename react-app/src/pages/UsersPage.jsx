@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+import LoadingScreen from '../components/LoadingScreen';
 
 const ALL_PERMS = [
   { key: 'CREATE_EVENT',   label: 'Create & edit events' },
@@ -118,7 +119,7 @@ export default function UsersPage() {
       {/* Users table */}
       <div className="card">
         {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text3)' }}>Loading users…</div>
+          <LoadingScreen message="Loading users..." />
         ) : (
           <table className="tbl">
             <thead>

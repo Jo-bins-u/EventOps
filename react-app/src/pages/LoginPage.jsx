@@ -95,29 +95,6 @@ export default function LoginPage() {
             Trouble signing in? Contact your administrator.
           </div>
         </div>
-
-        {/* Demo credentials */}
-        <div className="card" style={{ padding: '16px 20px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text3)', marginBottom: '10px', letterSpacing: '0.08em' }}>DEMO CREDENTIALS</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {[
-              { role: 'Admin', email: 'admin@college.edu', password: 'demo123' },
-              { role: 'Domain Head', email: 'domainhead@college.edu', password: 'demo123' },
-              { role: 'Event Head', email: 'eventhead@college.edu', password: 'demo123' },
-            ].map((cred) => (
-              <div
-                key={cred.role}
-                onClick={() => { setEmailOrId(cred.email); setPassword(cred.password); }}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 'var(--radius)', background: 'var(--surface2)', cursor: 'pointer', fontSize: '12px', border: '1px solid var(--border)', transition: 'var(--transition-all)' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface3)'; e.currentTarget.style.transform = 'translateX(2px)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--surface2)'; e.currentTarget.style.transform = 'none'; }}
-              >
-                <span style={{ fontWeight: 600, color: 'var(--text)' }}>{cred.role}</span>
-                <span style={{ color: 'var(--text3)', fontSize: '11px' }}>{cred.email}</span>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
