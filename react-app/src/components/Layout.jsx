@@ -125,7 +125,7 @@ export default function Layout() {
         {/* Logo */}
         <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <img src="/logo.png" alt="EventOps Logo" style={{ width: '22px', height: '22px', borderRadius: '5px' }} />
+            <img src="/logo.png" alt="EventOps Logo" style={{ height: '22px', width: 'auto', maxWidth: '32px', objectFit: 'contain' }} />
             <div style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-heading)', color: 'var(--text)' }}>EventOps Platform</div>
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '3px', fontWeight: 500 }}>Internal Coordination System</div>

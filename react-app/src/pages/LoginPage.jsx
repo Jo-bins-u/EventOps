@@ -30,7 +30,7 @@ export default function LoginPage() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', padding: '20px' }}>
       <div style={{ width: '400px' }}>
         <div style={{ textAlign: 'center', marginBottom: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src="/logo.png" alt="EventOps Logo" style={{ width: '48px', height: '48px', marginBottom: '14px', borderRadius: '10px' }} />
+          <img src="/logo.png" alt="EventOps Logo" style={{ height: '54px', width: 'auto', maxWidth: '100%', objectFit: 'contain', marginBottom: '10px' }} />
           <div style={{ fontSize: '24px', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--text)', letterSpacing: '-0.03em' }}>EventOps Platform</div>
           <div style={{ fontSize: '13px', color: 'var(--text3)', marginTop: '4px', fontWeight: 500 }}>Internal Coordination System</div>
         </div>
