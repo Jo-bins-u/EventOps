@@ -34,19 +34,45 @@ async function seed() {
   });
   console.log('Created Admin User:', admin.email);
 
-  // Create default Technical domain (required so Admin can create first overall event)
-  const domain = await Domain.create({
-    name: 'Technical',
-    description: 'Technical events, symposiums, hackathons, and programming contests.',
-    head: admin._id,
-    members: [admin._id],
-    color: '#185FA5',
-    icon: '⚙',
-    createdBy: admin._id,
-  });
-  console.log('Created Default Domain:', domain.name);
+  // Create default domains requested by user
+  const defaultDomains = [
+    {
+      name: 'Technical',
+      description: 'Technical events, coding seminars, workshops, and computer science competitions.',
+      color: '#185FA5',
+      icon: '⚙',
+    },
+    {
+      name: 'Cultural',
+      description: 'Music, dance, drama, fashion shows, and art exhibits.',
+      color: '#534AB7',
+      icon: '🎭',
+    },
+    {
+      name: 'Sports',
+      description: 'Athletics, tournaments, indoor and outdoor games.',
+      color: '#0F6E56',
+      icon: '🏅',
+    },
+    {
+      name: 'Fest',
+      description: 'Department festivals, carnivals, and cultural fests.',
+      color: '#854F0B',
+      icon: '🎪',
+    }
+  ];
 
-  console.log('\n✅ Database cleaned. Admin and Technical domain seeded!');
+  for (const dom of defaultDomains) {
+    await Domain.create({
+      ...dom,
+      head: admin._id,
+      members: [admin._id],
+      createdBy: admin._id,
+    });
+    console.log('Created Domain:', dom.name);
+  }
+
+  console.log('\n✅ Database cleaned. Admin and default domains seeded!');
   console.log('Login with: admin@college.edu / demo123');
 
   await mongoose.disconnect();

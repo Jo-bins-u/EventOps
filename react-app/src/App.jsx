@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 
 import Layout from './components/Layout';
@@ -18,6 +18,7 @@ import NotificationsPage from './pages/NotificationsPage';
 import UsersPage from './pages/UsersPage';
 import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
+import LandingPage from './pages/LandingPage';
 
 import { useEventContextStore } from './store/eventContextStore';
 import SelectEventPage from './pages/SelectEventPage';
@@ -44,13 +45,27 @@ function AdminRoute({ children }) {
   return children;
 }
 
+function RootElement() {
+  const { isAuthenticated } = useAuthStore();
+  const location = useLocation();
+
+  if (isAuthenticated) {
+    return <ScopedRoute><Layout /></ScopedRoute>;
+  } else {
+    if (location.pathname === '/') {
+      return <LandingPage />;
+    }
+    return <Navigate to="/login" replace />;
+  }
+}
+
 export default function App() {
   const { isAuthenticated } = useAuthStore();
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/select-event" element={<PrivateRoute><SelectEventPage /></PrivateRoute>} />
-      <Route path="/" element={<ScopedRoute><Layout /></ScopedRoute>}>
+      <Route path="/" element={<RootElement />}>
         <Route index element={<Dashboard />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="events/:id" element={<EventDetailPage />} />
